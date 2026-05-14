@@ -82,8 +82,8 @@ export function DocumentManagementActions({
         <p
           className={
             result.status === "success"
-              ? "rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
-              : "rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+              ? "rounded-[1.2rem] border border-emerald-200 bg-[linear-gradient(180deg,rgba(237,251,243,0.98),rgba(226,246,235,0.95))] px-4 py-3 text-sm text-emerald-900"
+              : "rounded-[1.2rem] border border-red-200 bg-[linear-gradient(180deg,rgba(254,242,242,0.98),rgba(252,226,226,0.95))] px-4 py-3 text-sm text-red-900"
           }
         >
           {result.message}
@@ -145,12 +145,12 @@ export function DocumentManagementActions({
         </button>
 
         <button
-          className={buttonVariants({
-            variant: "secondary",
-            size: "sm",
-            className:
-              "border-red-300 text-red-700 hover:bg-red-50 focus-visible:outline-red-700",
-          })}
+            className={buttonVariants({
+              variant: "secondary",
+              size: "sm",
+              className:
+                "border-red-300 text-red-700 hover:bg-red-50 focus-visible:outline-red-700",
+            })}
           disabled={pending !== null}
           onClick={() => runAction("delete")}
           type="button"
@@ -171,7 +171,7 @@ export function DocumentManagementActions({
       </div>
 
       {confirming ? (
-        <p className="text-xs leading-5 text-zinc-500">
+        <p className="text-xs leading-5 text-[color:oklch(0.49_0.024_39)]">
           This action changes public access immediately and is written to the
           document audit trail.
         </p>

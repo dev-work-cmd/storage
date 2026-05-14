@@ -36,6 +36,7 @@ type PdfPreviewViewerProps = {
   fileUrl: string;
   publicId: string;
   initialQrBounds?: PdfBounds;
+  allowQrEditing?: boolean;
 };
 
 type DetectionState =
@@ -76,6 +77,7 @@ export function PdfPreviewViewer({
   fileUrl,
   publicId,
   initialQrBounds,
+  allowQrEditing = true,
 }: PdfPreviewViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const viewportRef = useRef<PageViewport | null>(null);
@@ -330,32 +332,38 @@ export function PdfPreviewViewer({
         }
         pageCount={pageCount}
         selectedPage={selectedPage}
+        showDetectQr={allowQrEditing}
         zoom={zoom}
       />
 
       {/* Mode toggle */}
-      {isLoadingBounds ? (
-        <div className="rounded-lg border border-zinc-200 bg-white p-3 text-sm text-zinc-600">
+      {!allowQrEditing ? (
+        <div className="rounded-[1.4rem] border border-emerald-200 bg-[linear-gradient(180deg,rgba(237,251,243,0.98),rgba(226,246,235,0.95))] p-4 text-sm text-emerald-950 shadow-[0_18px_40px_-34px_rgba(36,92,55,0.4)]">
+          Showing the processed PDF. QR detection and manual editing are disabled
+          in this view.
+        </div>
+      ) : isLoadingBounds ? (
+        <div className="rounded-[1.4rem] border border-[color:oklch(0.89_0.015_74)] bg-white/82 p-4 text-sm text-[color:oklch(0.49_0.024_39)]">
           Loading QR data...
         </div>
       ) : existingQrBounds ? (
-        <div className="flex gap-2 rounded-lg border border-zinc-200 bg-white p-3">
+        <div className="flex gap-2 rounded-[1.4rem] border border-[color:oklch(0.89_0.015_74)] bg-white/82 p-3 shadow-[0_16px_36px_-32px_rgba(85,58,34,0.3)]">
           <button
             onClick={() => setMode("detect")}
-            className={`flex-1 rounded px-3 py-2 text-sm font-medium transition ${
+            className={`flex-1 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
               mode === "detect"
-                ? "bg-blue-600 text-white"
-                : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
+                ? "border border-[color:oklch(0.33_0.075_31.5)] bg-[linear-gradient(180deg,oklch(0.46_0.09_34),oklch(0.34_0.07_31))] text-[color:oklch(0.985_0.004_84.5)] shadow-[0_12px_30px_-20px_rgba(93,47,28,0.9)]"
+                : "bg-[color:oklch(0.96_0.008_80)] text-[color:oklch(0.47_0.023_38)] hover:bg-[color:oklch(0.94_0.012_76)]"
             }`}
           >
             Detect QR
           </button>
           <button
             onClick={() => setMode("select")}
-            className={`flex-1 rounded px-3 py-2 text-sm font-medium transition ${
+            className={`flex-1 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
               mode === "select"
-                ? "bg-blue-600 text-white"
-                : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
+                ? "border border-[color:oklch(0.33_0.075_31.5)] bg-[linear-gradient(180deg,oklch(0.46_0.09_34),oklch(0.34_0.07_31))] text-[color:oklch(0.985_0.004_84.5)] shadow-[0_12px_30px_-20px_rgba(93,47,28,0.9)]"
+                : "bg-[color:oklch(0.96_0.008_80)] text-[color:oklch(0.47_0.023_38)] hover:bg-[color:oklch(0.94_0.012_76)]"
             }`}
           >
             Adjust Manually
@@ -363,14 +371,14 @@ export function PdfPreviewViewer({
         </div>
       ) : null}
 
-      {detectionState.message && mode === "detect" ? (
+      {allowQrEditing && detectionState.message && mode === "detect" ? (
         <div
           className={
             detectionState.status === "success"
-              ? "rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"
+              ? "rounded-[1.4rem] border border-emerald-200 bg-[linear-gradient(180deg,rgba(237,251,243,0.98),rgba(226,246,235,0.95))] p-4 text-sm text-emerald-900"
               : detectionState.status === "error"
-                ? "rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"
-                : "rounded-lg border border-zinc-200 bg-white p-4 text-sm text-zinc-700"
+                ? "rounded-[1.4rem] border border-amber-200 bg-[linear-gradient(180deg,rgba(255,248,231,0.98),rgba(252,241,212,0.92))] p-4 text-sm text-amber-950"
+                : "rounded-[1.4rem] border border-[color:oklch(0.89_0.015_74)] bg-white/82 p-4 text-sm text-[color:oklch(0.47_0.023_38)]"
           }
         >
           {detectionState.message}
@@ -378,14 +386,14 @@ export function PdfPreviewViewer({
       ) : null}
 
       {errorMessage ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+        <div className="rounded-[1.4rem] border border-red-200 bg-[linear-gradient(180deg,rgba(254,242,242,0.98),rgba(252,226,226,0.95))] p-4 text-sm text-red-900">
           {errorMessage}
         </div>
       ) : null}
 
-      <div className="overflow-auto rounded-lg border border-zinc-200 bg-zinc-100 p-3">
+      <div className="overflow-auto rounded-[1.7rem] border border-[color:oklch(0.89_0.015_74)] bg-[linear-gradient(180deg,rgba(248,244,239,0.9),rgba(242,236,228,0.88))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]">
         <div className="flex min-h-112 min-w-full items-start justify-center">
-          {mode === "select" && canShowSelector && pageDimensions ? (
+          {allowQrEditing && mode === "select" && canShowSelector && pageDimensions ? (
             <QrManualSelector
               publicId={publicId}
               canvasWidth={pageDimensions.width * zoom}
@@ -414,7 +422,7 @@ export function PdfPreviewViewer({
                 aria-label="PDF page preview"
                 className="max-w-none bg-white shadow-sm"
               />
-              {detectedBounds && mode === "detect" ? (
+              {allowQrEditing && detectedBounds && mode === "detect" ? (
                 <div
                   aria-label="Detected QR bounds"
                   className="pointer-events-none absolute border-2 border-emerald-500 bg-emerald-400/15"

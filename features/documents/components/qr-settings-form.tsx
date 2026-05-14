@@ -8,6 +8,7 @@ import { startTransition, useState } from "react";
 
 import { saveQrSettings } from "@/features/documents/actions/qr-settings-actions";
 import type { QrSettingsInput } from "@/features/documents/schemas/qr-settings-schema";
+import { buttonVariants } from "@/components/ui/button";
 
 interface QrSettingsFormProps {
   publicId: string;
@@ -103,12 +104,11 @@ export function QrSettingsForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* QR Behavior Mode */}
       <fieldset>
         <legend className="text-sm font-medium text-zinc-950">
           QR behavior
         </legend>
-        <p className="mt-1 text-sm text-zinc-500">
+        <p className="mt-1 text-sm text-[color:oklch(0.49_0.024_39)]">
           Choose what happens when someone scans the QR code on this document.
         </p>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
@@ -120,10 +120,10 @@ export function QrSettingsForm({
           ).map(([mode, info]) => (
             <label
               key={mode}
-              className={`cursor-pointer rounded-lg border p-4 transition ${
+              className={`cursor-pointer rounded-[1.4rem] border p-4 transition ${
                 qrMode === mode
-                  ? "border-blue-400 bg-blue-50 ring-2 ring-blue-200"
-                  : "border-zinc-200 bg-white hover:border-zinc-300"
+                  ? "border-[color:oklch(0.62_0.073_32.8)] bg-[linear-gradient(180deg,rgba(255,246,238,0.98),rgba(250,239,227,0.95))] ring-2 ring-[color:oklch(0.86_0.026_68)]"
+                  : "border-[color:oklch(0.89_0.015_74)] bg-white/82 hover:border-[color:oklch(0.8_0.022_57)]"
               }`}
             >
               <input
@@ -136,27 +136,30 @@ export function QrSettingsForm({
               />
               <p
                 className={`text-sm font-medium ${
-                  qrMode === mode ? "text-blue-700" : "text-zinc-950"
+                  qrMode === mode
+                    ? "text-[color:oklch(0.33_0.075_31.5)]"
+                    : "text-zinc-950"
                 }`}
               >
                 {info.label}
               </p>
-              <p className="mt-1 text-xs text-zinc-500">{info.description}</p>
+              <p className="mt-2 text-xs leading-5 text-[color:oklch(0.49_0.024_39)]">
+                {info.description}
+              </p>
             </label>
           ))}
         </div>
       </fieldset>
 
-      {/* Expiration */}
       <div>
         <label
           htmlFor="expiresAt"
           className="text-sm font-medium text-zinc-950"
         >
           Expiration date{" "}
-          <span className="font-normal text-zinc-400">(optional)</span>
+          <span className="font-normal text-[color:oklch(0.6_0.02_42)]">(optional)</span>
         </label>
-        <p className="mt-1 text-sm text-zinc-500">
+        <p className="mt-1 text-sm text-[color:oklch(0.49_0.024_39)]">
           The document will be inaccessible after this date. Leave empty for no
           expiration.
         </p>
@@ -165,20 +168,19 @@ export function QrSettingsForm({
           type="datetime-local"
           value={expiresAt}
           onChange={(e) => setExpiresAt(e.target.value)}
-          className="mt-2 block w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-950 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+          className="mt-2 block w-full rounded-2xl border border-[color:oklch(0.89_0.015_74)] bg-white/85 px-4 py-3 text-sm text-zinc-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] focus:border-[color:oklch(0.62_0.073_32.8)] focus:outline-none focus:ring-4 focus:ring-[color:oklch(0.88_0.025_68)]"
         />
       </div>
 
-      {/* Max Access Count */}
       <div>
         <label
           htmlFor="maxAccessCount"
           className="text-sm font-medium text-zinc-950"
         >
           Max access count{" "}
-          <span className="font-normal text-zinc-400">(optional)</span>
+          <span className="font-normal text-[color:oklch(0.6_0.02_42)]">(optional)</span>
         </label>
-        <p className="mt-1 text-sm text-zinc-500">
+        <p className="mt-1 text-sm text-[color:oklch(0.49_0.024_39)]">
           Limit how many times this document can be accessed. Leave empty for
           unlimited.
         </p>
@@ -190,19 +192,18 @@ export function QrSettingsForm({
           value={maxAccessCount}
           onChange={(e) => setMaxAccessCount(e.target.value)}
           placeholder="Unlimited"
-          className="mt-2 block w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-950 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+          className="mt-2 block w-full rounded-2xl border border-[color:oklch(0.89_0.015_74)] bg-white/85 px-4 py-3 text-sm text-zinc-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] focus:border-[color:oklch(0.62_0.073_32.8)] focus:outline-none focus:ring-4 focus:ring-[color:oklch(0.88_0.025_68)]"
         />
       </div>
 
-      {/* PIN Protection */}
-      <fieldset className="rounded-lg border border-zinc-200 p-4">
+      <fieldset className="rounded-[1.5rem] border border-[color:oklch(0.89_0.015_74)] bg-white/62 p-5">
         <div className="flex items-start gap-3">
           <input
             id="requiresPin"
             type="checkbox"
             checked={requiresPin}
             onChange={(e) => setRequiresPin(e.target.checked)}
-            className="mt-1 h-4 w-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-200"
+            className="mt-1 h-4 w-4 rounded border-zinc-300 text-[color:oklch(0.36_0.08_33.5)] focus:ring-[color:oklch(0.88_0.025_68)]"
           />
           <div className="flex-1">
             <label
@@ -211,7 +212,7 @@ export function QrSettingsForm({
             >
               Require PIN to access
             </label>
-            <p className="mt-1 text-sm text-zinc-500">
+            <p className="mt-1 text-sm text-[color:oklch(0.49_0.024_39)]">
               Add a PIN that scanners must enter before viewing or downloading
               the document. The PIN is hashed before storage and never stored in
               plaintext.
@@ -225,29 +226,28 @@ export function QrSettingsForm({
                 minLength={4}
                 maxLength={64}
                 required
-                className="mt-3 block w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-950 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                className="mt-3 block w-full rounded-2xl border border-[color:oklch(0.89_0.015_74)] bg-white/88 px-4 py-3 text-sm text-zinc-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] focus:border-[color:oklch(0.62_0.073_32.8)] focus:outline-none focus:ring-4 focus:ring-[color:oklch(0.88_0.025_68)]"
               />
             ) : null}
           </div>
         </div>
       </fieldset>
 
-      {/* Enable/Disable */}
       <fieldset>
         <legend className="text-sm font-medium text-zinc-950">
           Document status
         </legend>
-        <p className="mt-1 text-sm text-zinc-500">
+        <p className="mt-1 text-sm text-[color:oklch(0.49_0.024_39)]">
           You can disable access later from document management.
         </p>
         <div className="mt-3 flex items-center gap-3">
           <button
             type="button"
             onClick={() => setIsEnabled(true)}
-            className={`rounded-lg border px-4 py-2 text-sm font-medium transition ${
+            className={`rounded-2xl border px-4 py-2.5 text-sm font-medium transition ${
               isEnabled
-                ? "border-emerald-400 bg-emerald-50 text-emerald-700 ring-2 ring-emerald-200"
-                : "border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300"
+                ? "border-emerald-300 bg-emerald-50 text-emerald-800 ring-2 ring-emerald-200"
+                : "border-[color:oklch(0.89_0.015_74)] bg-white/82 text-[color:oklch(0.49_0.024_39)] hover:border-[color:oklch(0.8_0.022_57)]"
             }`}
           >
             Enabled
@@ -255,10 +255,10 @@ export function QrSettingsForm({
           <button
             type="button"
             onClick={() => setIsEnabled(false)}
-            className={`rounded-lg border px-4 py-2 text-sm font-medium transition ${
+            className={`rounded-2xl border px-4 py-2.5 text-sm font-medium transition ${
               !isEnabled
-                ? "border-amber-400 bg-amber-50 text-amber-700 ring-2 ring-amber-200"
-                : "border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300"
+                ? "border-amber-300 bg-amber-50 text-amber-800 ring-2 ring-amber-200"
+                : "border-[color:oklch(0.89_0.015_74)] bg-white/82 text-[color:oklch(0.49_0.024_39)] hover:border-[color:oklch(0.8_0.022_57)]"
             }`}
           >
             Disabled
@@ -266,8 +266,7 @@ export function QrSettingsForm({
         </div>
       </fieldset>
 
-      {/* Legal Confirmation */}
-      <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-4">
+      <div className="rounded-[1.5rem] border border-[color:oklch(0.89_0.015_74)] bg-[linear-gradient(180deg,rgba(252,250,246,0.95),rgba(245,238,228,0.9))] p-5">
         <div className="flex items-start gap-3">
           <input
             id="legalConfirmed"
@@ -275,7 +274,7 @@ export function QrSettingsForm({
             checked={legalConfirmed}
             onChange={(e) => setLegalConfirmed(e.target.checked)}
             required
-            className="mt-1 h-4 w-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-200"
+            className="mt-1 h-4 w-4 rounded border-zinc-300 text-[color:oklch(0.36_0.08_33.5)] focus:ring-[color:oklch(0.88_0.025_68)]"
           />
           <div>
             <label
@@ -284,7 +283,7 @@ export function QrSettingsForm({
             >
               Legal authority confirmation
             </label>
-            <p className="mt-1 text-sm text-zinc-600">
+            <p className="mt-1 text-sm text-[color:oklch(0.45_0.024_39)]">
               By checking this box, I confirm that I have the legal authority to
               distribute this document and will not use this platform for fraud,
               forgery, falsification, impersonation, or any unlawful purpose. I
@@ -295,13 +294,12 @@ export function QrSettingsForm({
         </div>
       </div>
 
-      {/* Status messages */}
       {status.type !== "idle" && status.message ? (
         <div
           className={
             status.type === "success"
-              ? "rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"
-              : "rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800"
+              ? "rounded-[1.4rem] border border-emerald-200 bg-[linear-gradient(180deg,rgba(237,251,243,0.98),rgba(226,246,235,0.95))] p-4 text-sm text-emerald-900"
+              : "rounded-[1.4rem] border border-red-200 bg-[linear-gradient(180deg,rgba(254,242,242,0.98),rgba(252,226,226,0.95))] p-4 text-sm text-red-900"
           }
         >
           <p>{status.message}</p>
@@ -315,11 +313,12 @@ export function QrSettingsForm({
         </div>
       ) : null}
 
-      {/* Submit */}
       <button
         type="submit"
         disabled={saving || !legalConfirmed}
-        className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-zinc-300"
+        className={buttonVariants({
+          className: "w-full h-11",
+        })}
       >
         {saving ? "Saving..." : "Save Access Settings"}
       </button>

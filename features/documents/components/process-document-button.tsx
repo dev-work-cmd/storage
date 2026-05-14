@@ -4,7 +4,9 @@
 // Triggers the end-to-end processing pipeline: QR replacement + storage.
 // Must stay client-side for interactive confirmation; server action handles processing.
 import { startTransition, useState } from "react";
+import { useRouter } from "next/navigation";
 
+import { buttonVariants } from "@/components/ui/button";
 import { processDocumentAction } from "@/features/documents/actions/process-document-action";
 
 interface ProcessButtonProps {
@@ -12,6 +14,7 @@ interface ProcessButtonProps {
 }
 
 export function ProcessDocumentButton({ publicId }: ProcessButtonProps) {
+  const router = useRouter();
   const [confirming, setConfirming] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [result, setResult] = useState<{
@@ -31,6 +34,12 @@ export function ProcessDocumentButton({ publicId }: ProcessButtonProps) {
 
     startTransition(async () => {
       const res = await processDocumentAction(publicId);
+
+      if (res.status === "success") {
+        router.replace(`/dashboard/documents/${publicId}?processed=1`);
+        return;
+      }
+
       setResult(res);
       setProcessing(false);
     });
@@ -46,8 +55,8 @@ export function ProcessDocumentButton({ publicId }: ProcessButtonProps) {
         <div
           className={
             result.status === "success"
-              ? "rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"
-              : "rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800"
+              ? "rounded-[1.4rem] border border-emerald-200 bg-[linear-gradient(180deg,rgba(237,251,243,0.98),rgba(226,246,235,0.95))] p-4 text-sm text-emerald-900"
+              : "rounded-[1.4rem] border border-red-200 bg-[linear-gradient(180deg,rgba(254,242,242,0.98),rgba(252,226,226,0.95))] p-4 text-sm text-red-900"
           }
         >
           {result.message}
@@ -58,11 +67,11 @@ export function ProcessDocumentButton({ publicId }: ProcessButtonProps) {
         <button
           onClick={handleProcess}
           disabled={processing}
-          className={`rounded-lg px-4 py-2.5 text-sm font-medium text-white transition ${
+          className={
             confirming
-              ? "bg-amber-600 hover:bg-amber-700"
-              : "bg-blue-600 hover:bg-blue-700"
-          } disabled:cursor-not-allowed disabled:bg-zinc-300`}
+              ? "inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-amber-300 bg-[linear-gradient(180deg,rgba(251,191,36,0.95),rgba(217,119,6,0.95))] px-4 text-sm font-medium text-white shadow-[0_14px_32px_-22px_rgba(180,83,9,0.8)] transition hover:-translate-y-px disabled:pointer-events-none disabled:opacity-60"
+              : buttonVariants()
+          }
         >
           {processing
             ? "Processing..."
@@ -75,7 +84,7 @@ export function ProcessDocumentButton({ publicId }: ProcessButtonProps) {
           <button
             onClick={handleCancel}
             disabled={processing}
-            className="rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed"
+            className={buttonVariants({ variant: "secondary" })}
           >
             Cancel
           </button>
@@ -83,7 +92,7 @@ export function ProcessDocumentButton({ publicId }: ProcessButtonProps) {
       </div>
 
       {confirming ? (
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs leading-5 text-[color:oklch(0.49_0.024_39)]">
           Processing will replace the selected QR area with a new QR code. This
           action cannot be undone.
         </p>

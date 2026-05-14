@@ -1,20 +1,37 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Inter } from "next/font/google";
+import {
+  Fraunces,
+  Geist,
+  Geist_Mono,
+  Instrument_Sans,
+} from "next/font/google";
 
 import { cn } from "@/lib/utils";
 
 import "./globals.css";
 
-const inter = Inter({subsets:['latin'],variable:'--font-sans'});
+const instrumentSans = Instrument_Sans({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+});
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-heading",
+  display: "swap",
+});
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -39,8 +56,9 @@ export default function RootLayout({
         "antialiased",
         geistSans.variable,
         geistMono.variable,
+        instrumentSans.variable,
+        fraunces.variable,
         "font-sans",
-        inter.variable,
       )}
     >
       <body

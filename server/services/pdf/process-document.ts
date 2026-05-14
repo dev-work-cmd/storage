@@ -23,6 +23,8 @@ export interface ProcessDocumentInput {
 export interface ProcessDocumentResult {
   status: "success" | "error";
   message: string;
+  processedFileUrl?: string;
+  verificationUrl?: string;
 }
 
 /**
@@ -206,6 +208,8 @@ export async function processDocument(
 
   return {
     status: "success",
-    message: "Document processed successfully.",
+    message: "QR code replaced successfully. Your processed document is ready.",
+    processedFileUrl: `/api/dashboard/documents/${document.publicId}/processed`,
+    verificationUrl: targetUrl,
   };
 }

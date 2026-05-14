@@ -30,13 +30,16 @@ export function VerificationResult({
     return (
       <Card>
         <CardHeader>
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <p className="text-[0.68rem] uppercase tracking-[0.28em] text-[color:oklch(0.52_0.022_39)]">
+            Access status
+          </p>
+          <h1 className="mt-2 text-3xl text-[color:oklch(0.245_0.026_41)]">
             Verification unavailable
           </h1>
         </CardHeader>
         <CardContent>
-          <p className="text-sm leading-6 text-zinc-600">{result.message}</p>
-          <p className="mt-4 text-sm leading-6 text-zinc-500">
+          <p className="text-sm leading-7 text-[color:oklch(0.45_0.024_39)]">{result.message}</p>
+          <p className="mt-4 text-sm leading-7 text-[color:oklch(0.5_0.024_38)]">
             This page does not imply legal or official authenticity. Access is
             controlled by the document owner.
           </p>
@@ -49,10 +52,13 @@ export function VerificationResult({
     return (
       <Card>
         <CardHeader>
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <p className="text-[0.68rem] uppercase tracking-[0.28em] text-[color:oklch(0.52_0.022_39)]">
+            Protected access
+          </p>
+          <h1 className="mt-2 text-3xl text-[color:oklch(0.245_0.026_41)]">
             PIN required
           </h1>
-          <p className="mt-2 text-sm leading-6 text-zinc-600">
+          <p className="mt-2 text-sm leading-7 text-[color:oklch(0.45_0.024_39)]">
             The owner requires a PIN before this document can be accessed.
           </p>
         </CardHeader>
@@ -74,13 +80,13 @@ export function VerificationResult({
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <p className="text-xs uppercase tracking-[0.28em] text-zinc-500">
+          <p className="text-xs uppercase tracking-[0.28em] text-[color:oklch(0.52_0.022_39)]">
             Verification page
           </p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight">
+          <h1 className="mt-2 text-4xl text-[color:oklch(0.245_0.026_41)]">
             {result.document.title}
           </h1>
-          <p className="mt-2 text-sm leading-6 text-zinc-600">
+          <p className="mt-3 max-w-3xl text-sm leading-7 text-[color:oklch(0.45_0.024_39)]">
             This file is managed by its owner through Secure PDF QR. This page
             confirms that the app can evaluate the owner&apos;s access rules; it
             does not create legal or official authenticity.
@@ -88,20 +94,20 @@ export function VerificationResult({
         </CardHeader>
         <CardContent>
           <dl className="grid gap-4 text-sm sm:grid-cols-3">
-            <div>
-              <dt className="text-zinc-500">Original file</dt>
+            <div className="rounded-[1.35rem] border border-[color:oklch(0.89_0.015_74)] bg-[linear-gradient(180deg,rgba(255,255,255,0.7),rgba(246,241,233,0.58))] p-4">
+              <dt className="text-[color:oklch(0.5_0.024_38)]">Original file</dt>
               <dd className="mt-1 truncate font-medium text-zinc-950">
                 {result.document.originalFilename}
               </dd>
             </div>
-            <div>
-              <dt className="text-zinc-500">Processed</dt>
+            <div className="rounded-[1.35rem] border border-[color:oklch(0.89_0.015_74)] bg-[linear-gradient(180deg,rgba(255,255,255,0.7),rgba(246,241,233,0.58))] p-4">
+              <dt className="text-[color:oklch(0.5_0.024_38)]">Processed</dt>
               <dd className="mt-1 font-medium text-zinc-950">
                 {formatDate(result.document.processedAt)}
               </dd>
             </div>
-            <div>
-              <dt className="text-zinc-500">Expires</dt>
+            <div className="rounded-[1.35rem] border border-[color:oklch(0.89_0.015_74)] bg-[linear-gradient(180deg,rgba(255,255,255,0.7),rgba(246,241,233,0.58))] p-4">
+              <dt className="text-[color:oklch(0.5_0.024_38)]">Expires</dt>
               <dd className="mt-1 font-medium text-zinc-950">
                 {formatDate(result.document.expiresAt)}
               </dd>
@@ -121,7 +127,7 @@ export function VerificationResult({
               </Link>
             </div>
           ) : (
-            <p className="mt-6 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-600">
+            <p className="mt-6 rounded-[1.2rem] border border-[color:oklch(0.89_0.015_74)] bg-[linear-gradient(180deg,rgba(255,255,255,0.76),rgba(246,241,233,0.62))] px-4 py-3 text-sm text-[color:oklch(0.45_0.024_39)]">
               The owner configured this QR code for verification only. File
               access is not exposed from this page.
             </p>
