@@ -68,6 +68,9 @@ export function PdfUploadForm({
   }, [state.status]);
 
   const fileError = clientFileError ?? state.fieldErrors?.file?.[0];
+  const successHref = state.documentPublicId
+    ? `/dashboard/documents/${state.documentPublicId}`
+    : undefined;
 
   return (
     <form
@@ -135,15 +138,15 @@ export function PdfUploadForm({
         >
           <p>
             {state.documentTitle
-              ? `${state.message} ${state.documentTitle} is ready for preview.`
+              ? `${state.message} ${state.documentTitle} is ready for editing.`
               : state.message}
           </p>
           {state.documentPublicId ? (
             <Link
               className="mt-2 inline-flex font-medium underline underline-offset-4"
-              href={`/dashboard/documents/${state.documentPublicId}`}
+              href={successHref ?? "/dashboard/documents"}
             >
-              Open preview
+              Open document workspace
             </Link>
           ) : null}
         </div>

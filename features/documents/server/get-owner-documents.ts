@@ -11,6 +11,7 @@ export type OwnerDocumentListItem = {
   title: string;
   originalFilename: string;
   status: string;
+  workflowType: "REPLACE_EXISTING_QR" | "INSERT_NEW_QR" | null;
   qrMode: string;
   isEnabled: boolean;
   isRevoked: boolean;
@@ -40,6 +41,7 @@ export async function getOwnerDocuments(): Promise<OwnerDocumentListItem[]> {
       title: true,
       originalFilename: true,
       status: true,
+      workflowType: true,
       qrMode: true,
       isEnabled: true,
       isRevoked: true,

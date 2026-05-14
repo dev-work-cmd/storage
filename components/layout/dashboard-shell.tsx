@@ -25,7 +25,7 @@ const navItems = [
   },
   {
     href: "/dashboard/documents/new",
-    label: "Upload",
+    label: "New Document",
     icon: FileUploadIcon,
   },
   {
@@ -100,7 +100,7 @@ export async function DashboardShell({ children }: { children: ReactNode }) {
                 href="/dashboard/documents/new"
               >
                 <Icon icon={FileUploadIcon} size={18} strokeWidth={1.8} />
-                Upload PDF
+                New Document
               </Link>
               <form action={logout}>
                 <button

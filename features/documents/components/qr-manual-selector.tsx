@@ -4,6 +4,7 @@
 // Displays stored or detected QR bounds as a starting point.
 // Handles coordinate system conversion between viewport and PDF space.
 // Persists final bounds through server action.
+import type { ReactNode } from "react";
 import { startTransition, useCallback, useState } from "react";
 import { Rnd } from "react-rnd";
 
@@ -24,6 +25,8 @@ interface QrManualSelectorProps {
   pageHeight: number;
   initialPdfBounds?: PdfBounds;
   onSave?: () => void;
+  children?: ReactNode;
+  saveLabel?: string;
 }
 
 interface SelectorState {
@@ -40,6 +43,8 @@ export function QrManualSelector({
   pageHeight,
   initialPdfBounds,
   onSave,
+  children,
+  saveLabel = "Save QR Area",
 }: QrManualSelectorProps) {
   const pageInfo: PdfPageInfo = { width: pageWidth, height: pageHeight };
 
@@ -117,14 +122,14 @@ export function QrManualSelector({
 
   return (
     <div className="space-y-3">
-      {/* Selector box overlay using react-rnd */}
       <div
-        className="relative cursor-move select-none rounded-lg border border-zinc-200 bg-zinc-100 p-3"
+        className="relative overflow-hidden rounded-[1.25rem] border border-zinc-200 bg-zinc-100"
         style={{
           width: canvasWidth,
           height: canvasHeight,
         }}
       >
+        {children}
         <Rnd
           default={{
             x: clampedPosition.x,
@@ -148,7 +153,7 @@ export function QrManualSelector({
           maxHeight={canvasHeight}
           bounds="parent"
         >
-          <div className="h-full w-full border-2 border-blue-500 bg-blue-400/10 cursor-inherit" />
+          <div className="h-full w-full cursor-inherit border-2 border-blue-500 bg-blue-400/10 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.45)]" />
         </Rnd>
       </div>
 
@@ -251,7 +256,7 @@ export function QrManualSelector({
         disabled={selectorState.status === "saving"}
         className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:bg-zinc-300"
       >
-        {selectorState.status === "saving" ? "Saving..." : "Save QR Area"}
+        {selectorState.status === "saving" ? "Saving..." : saveLabel}
       </button>
     </div>
   );

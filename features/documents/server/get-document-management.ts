@@ -11,6 +11,7 @@ export type DocumentManagement = {
   title: string;
   originalFilename: string;
   status: string;
+  workflowType: "REPLACE_EXISTING_QR" | "INSERT_NEW_QR" | null;
   qrMode: string;
   qrTargetUrl: string | null;
   isEnabled: boolean;
@@ -45,6 +46,7 @@ export async function getDocumentManagement(
       title: true,
       originalFilename: true,
       status: true,
+      workflowType: true,
       qrMode: true,
       qrTargetUrl: true,
       isEnabled: true,

@@ -11,9 +11,21 @@ import { processDocumentAction } from "@/features/documents/actions/process-docu
 
 interface ProcessButtonProps {
   publicId: string;
+  successHref?: string;
+  actionLabel?: string;
+  processingLabel?: string;
+  confirmLabel?: string;
+  confirmationMessage?: string;
 }
 
-export function ProcessDocumentButton({ publicId }: ProcessButtonProps) {
+export function ProcessDocumentButton({
+  publicId,
+  successHref,
+  actionLabel = "Process Document",
+  processingLabel = "Processing...",
+  confirmLabel = "Click again to confirm processing",
+  confirmationMessage = "Processing will replace the selected QR area with a new QR code. This action cannot be undone.",
+}: ProcessButtonProps) {
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -36,7 +48,9 @@ export function ProcessDocumentButton({ publicId }: ProcessButtonProps) {
       const res = await processDocumentAction(publicId);
 
       if (res.status === "success") {
-        router.replace(`/dashboard/documents/${publicId}?processed=1`);
+        router.replace(
+          successHref ?? `/dashboard/documents/${publicId}?processed=1`,
+        );
         return;
       }
 
@@ -74,10 +88,10 @@ export function ProcessDocumentButton({ publicId }: ProcessButtonProps) {
           }
         >
           {processing
-            ? "Processing..."
+            ? processingLabel
             : confirming
-              ? "Click again to confirm processing"
-              : "Process Document"}
+              ? confirmLabel
+              : actionLabel}
         </button>
 
         {confirming ? (
@@ -93,8 +107,7 @@ export function ProcessDocumentButton({ publicId }: ProcessButtonProps) {
 
       {confirming ? (
         <p className="text-xs leading-5 text-[color:oklch(0.49_0.024_39)]">
-          Processing will replace the selected QR area with a new QR code. This
-          action cannot be undone.
+          {confirmationMessage}
         </p>
       ) : null}
     </div>

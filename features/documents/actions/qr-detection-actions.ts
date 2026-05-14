@@ -60,6 +60,7 @@ export async function saveDetectedQrBounds(
     }
 
     revalidatePath(`/dashboard/documents/${parsed.data.publicId}`);
+    revalidatePath(`/dashboard/documents/${parsed.data.publicId}/insert-qr`);
 
     return {
       status: "success",
@@ -70,21 +71,20 @@ export async function saveDetectedQrBounds(
     if (error instanceof CoordinateConversionError) {
       return {
         status: "error",
-        message: `Coordinate error: ${error.message}`,
+        message: "The QR coordinates could not be converted safely.",
       };
     }
 
-    // Generic server error handler
-    if (error instanceof Error) {
+    if (error instanceof Error && error.message === "Unauthorized") {
       return {
         status: "error",
-        message: `Server error: ${error.message}`,
+        message: "You must be signed in to save QR coordinates.",
       };
     }
 
     return {
       status: "error",
-      message: "An unexpected error occurred.",
+      message: "The QR coordinates could not be saved. Try again.",
     };
   }
 }

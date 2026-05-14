@@ -64,6 +64,7 @@ async function updateOwnerDocument(
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/documents");
   revalidatePath(`/dashboard/documents/${publicId}`);
+  revalidatePath(`/dashboard/documents/${publicId}/insert-qr`);
   revalidatePath(`/verify/${publicId}`);
   return true;
 }
@@ -179,13 +180,10 @@ export async function deleteDocument(publicId: string) {
     if (document.processedFilePath) {
       await removeProcessedPdf(document.processedFilePath);
     }
-  } catch (error) {
+  } catch {
     return {
       status: "error",
-      message:
-        error instanceof Error
-          ? `Document files could not be removed from storage: ${error.message}`
-          : "Document files could not be removed from storage.",
+      message: "Document files could not be removed from storage.",
     };
   }
 
@@ -214,6 +212,7 @@ export async function deleteDocument(publicId: string) {
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/documents");
   revalidatePath(`/dashboard/documents/${publicId}`);
+  revalidatePath(`/dashboard/documents/${publicId}/insert-qr`);
   revalidatePath(`/verify/${publicId}`);
 
   redirect("/dashboard/documents");
@@ -250,9 +249,88 @@ export async function regenerateDocument(
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/documents");
   revalidatePath(`/dashboard/documents/${publicId}`);
+  revalidatePath(`/dashboard/documents/${publicId}/insert-qr`);
   revalidatePath(`/verify/${publicId}`);
 
   return result.status === "success"
     ? { status: "success", message: "Processed PDF regenerated." }
-    : result;
+    : {
+        status: "error",
+        message: "The processed PDF could not be regenerated.",
+      };
+}
+
+export async function selectDocumentWorkflow(
+  publicId: string,
+  workflowType: "REPLACE_EXISTING_QR" | "INSERT_NEW_QR",
+): Promise<ManagementActionResult> {
+  const session = await requireCurrentSession();
+
+  const currentDocument = await prisma.document.findFirst({
+    where: {
+      publicId,
+      ownerId: session.user.id,
+      deletedAt: null,
+    },
+    select: {
+      workflowType: true,
+      status: true,
+    },
+  });
+
+  if (!currentDocument) {
+    return {
+      status: "error",
+      message: "Document not found.",
+    };
+  }
+
+  if (currentDocument.status === "PROCESSING") {
+    return {
+      status: "error",
+      message: "Wait for the current processing job to finish first.",
+    };
+  }
+
+  const updated = await prisma.document.updateMany({
+    where: {
+      publicId,
+      ownerId: session.user.id,
+      deletedAt: null,
+    },
+    data: {
+      workflowType,
+      status: "DRAFT",
+      processingError: null,
+      ...(currentDocument.workflowType === workflowType
+        ? {}
+        : {
+            qrPageNumber: null,
+            qrX: null,
+            qrY: null,
+            qrWidth: null,
+            qrHeight: null,
+          }),
+    },
+  });
+
+  if (updated.count !== 1) {
+    return {
+      status: "error",
+      message: "The document could not be prepared for editing.",
+    };
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/documents");
+  revalidatePath(`/dashboard/documents/${publicId}`);
+  revalidatePath(`/dashboard/documents/${publicId}/insert-qr`);
+
+  return {
+    status: "success",
+    message:
+      workflowType === "INSERT_NEW_QR"
+        ? "Insertion mode is ready. Save bounds and process when you are ready."
+        : "Replacement mode is ready. Detect or adjust the QR bounds and process when you are ready.",
+  };
 }
