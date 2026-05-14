@@ -1,0 +1,258 @@
+"use client";
+
+// Owns manual QR coordinate selection with drag/resize UI.
+// Displays stored or detected QR bounds as a starting point.
+// Handles coordinate system conversion between viewport and PDF space.
+// Persists final bounds through server action.
+import { startTransition, useCallback, useState } from "react";
+import { Rnd } from "react-rnd";
+
+import { saveDetectedQrBounds } from "@/features/documents/actions/qr-detection-actions";
+import {
+  convertPdfBoundsToViewportBounds,
+  convertViewportBoundsToPdfBoundsWithOrigin,
+  type PdfPageInfo,
+} from "@/server/services/qr/coordinate-system";
+import type { PdfBounds } from "@/lib/pdf-coordinate-conversion";
+
+interface QrManualSelectorProps {
+  publicId: string;
+  canvasWidth: number;
+  canvasHeight: number;
+  pageNumber: number;
+  pageWidth: number;
+  pageHeight: number;
+  initialPdfBounds?: PdfBounds;
+  onSave?: () => void;
+}
+
+interface SelectorState {
+  status: "idle" | "saving" | "success" | "error";
+  message?: string;
+}
+
+export function QrManualSelector({
+  publicId,
+  canvasWidth,
+  canvasHeight,
+  pageNumber,
+  pageWidth,
+  pageHeight,
+  initialPdfBounds,
+  onSave,
+}: QrManualSelectorProps) {
+  const pageInfo: PdfPageInfo = { width: pageWidth, height: pageHeight };
+
+  // Calculate initial box position in viewport space
+  const initialViewportBounds = initialPdfBounds
+    ? convertPdfBoundsToViewportBounds(initialPdfBounds, pageInfo)
+    : {
+        x: canvasWidth * 0.2,
+        y: canvasHeight * 0.2,
+        width: canvasWidth * 0.3,
+        height: canvasHeight * 0.3,
+      };
+
+  const [position, setPosition] = useState({
+    x: initialViewportBounds.x,
+    y: initialViewportBounds.y,
+  });
+
+  const [size, setSize] = useState({
+    width: initialViewportBounds.width,
+    height: initialViewportBounds.height,
+  });
+
+  const [selectorState, setSelectorState] = useState<SelectorState>({
+    status: "idle",
+  });
+
+  const handleSave = useCallback(async () => {
+    setSelectorState({ status: "saving", message: "Saving QR bounds..." });
+
+    const viewportBounds = {
+      x: position.x,
+      y: position.y,
+      width: size.width,
+      height: size.height,
+    };
+
+    const pdfBounds = convertViewportBoundsToPdfBoundsWithOrigin(
+      viewportBounds,
+      pageInfo,
+    );
+
+    startTransition(async () => {
+      const result = await saveDetectedQrBounds({
+        publicId,
+        pageNumber,
+        source: "MANUAL",
+        x: pdfBounds.x,
+        y: pdfBounds.y,
+        width: pdfBounds.width,
+        height: pdfBounds.height,
+      });
+
+      setSelectorState({
+        status: result.status,
+        message: result.message,
+      });
+
+      if (result.status === "success" && onSave) {
+        onSave();
+      }
+    });
+  }, [position, size, publicId, pageNumber, pageInfo, onSave]);
+
+  // Clamp values to prevent box from going outside canvas
+  const clampedPosition = {
+    x: Math.max(0, Math.min(position.x, canvasWidth - size.width)),
+    y: Math.max(0, Math.min(position.y, canvasHeight - size.height)),
+  };
+
+  const clampedSize = {
+    width: Math.min(size.width, canvasWidth - clampedPosition.x),
+    height: Math.min(size.height, canvasHeight - clampedPosition.y),
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Selector box overlay using react-rnd */}
+      <div
+        className="relative cursor-move select-none rounded-lg border border-zinc-200 bg-zinc-100 p-3"
+        style={{
+          width: canvasWidth,
+          height: canvasHeight,
+        }}
+      >
+        <Rnd
+          default={{
+            x: clampedPosition.x,
+            y: clampedPosition.y,
+            width: clampedSize.width,
+            height: clampedSize.height,
+          }}
+          onDragStop={(e, d) => {
+            setPosition({ x: d.x, y: d.y });
+          }}
+          onResizeStop={(e, direction, ref, delta, position) => {
+            setPosition(position);
+            setSize({
+              width: ref.offsetWidth,
+              height: ref.offsetHeight,
+            });
+          }}
+          minWidth={20}
+          minHeight={20}
+          maxWidth={canvasWidth}
+          maxHeight={canvasHeight}
+          bounds="parent"
+        >
+          <div className="h-full w-full border-2 border-blue-500 bg-blue-400/10 cursor-inherit" />
+        </Rnd>
+      </div>
+
+      {/* Coordinate display for debugging */}
+      <div className="grid gap-2 rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-xs">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div>
+            <p className="text-zinc-500">Page</p>
+            <p className="font-medium text-zinc-950">{pageNumber}</p>
+          </div>
+          <div>
+            <p className="text-zinc-500">Viewport X</p>
+            <p className="font-mono text-zinc-950">
+              {Math.round(clampedPosition.x)}
+            </p>
+          </div>
+          <div>
+            <p className="text-zinc-500">Viewport Y</p>
+            <p className="font-mono text-zinc-950">
+              {Math.round(clampedPosition.y)}
+            </p>
+          </div>
+          <div>
+            <p className="text-zinc-500">Size</p>
+            <p className="font-mono text-zinc-950">
+              {Math.round(clampedSize.width)}×{Math.round(clampedSize.height)}
+            </p>
+          </div>
+        </div>
+
+        <div className="border-t border-zinc-200 pt-2">
+          <p className="text-zinc-600">PDF Space Coordinates:</p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div>
+              <p className="text-zinc-500">PDF X</p>
+              <p className="font-mono text-zinc-950">
+                {Math.round(
+                  convertViewportBoundsToPdfBoundsWithOrigin(
+                    {
+                      x: clampedPosition.x,
+                      y: clampedPosition.y,
+                      width: clampedSize.width,
+                      height: clampedSize.height,
+                    },
+                    pageInfo,
+                  ).x,
+                )}
+              </p>
+            </div>
+            <div>
+              <p className="text-zinc-500">PDF Y</p>
+              <p className="font-mono text-zinc-950">
+                {Math.round(
+                  convertViewportBoundsToPdfBoundsWithOrigin(
+                    {
+                      x: clampedPosition.x,
+                      y: clampedPosition.y,
+                      width: clampedSize.width,
+                      height: clampedSize.height,
+                    },
+                    pageInfo,
+                  ).y,
+                )}
+              </p>
+            </div>
+            <div>
+              <p className="text-zinc-500">PDF W</p>
+              <p className="font-mono text-zinc-950">
+                {Math.round(clampedSize.width)}
+              </p>
+            </div>
+            <div>
+              <p className="text-zinc-500">PDF H</p>
+              <p className="font-mono text-zinc-950">
+                {Math.round(clampedSize.height)}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Status messages */}
+      {selectorState.message ? (
+        <div
+          className={
+            selectorState.status === "success"
+              ? "rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800"
+              : selectorState.status === "error"
+                ? "rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+                : "rounded-lg border border-zinc-200 bg-white p-3 text-sm text-zinc-700"
+          }
+        >
+          {selectorState.message}
+        </div>
+      ) : null}
+
+      {/* Save button */}
+      <button
+        onClick={handleSave}
+        disabled={selectorState.status === "saving"}
+        className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:bg-zinc-300"
+      >
+        {selectorState.status === "saving" ? "Saving..." : "Save QR Area"}
+      </button>
+    </div>
+  );
+}

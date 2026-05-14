@@ -1,0 +1,101 @@
+// Owns the presentation for PDF preview navigation, zoom, and detection controls.
+// Keeps the viewer component focused on PDF.js rendering and detection state.
+// Must remain stateless so later QR overlay tools can reuse the same controls.
+import {
+  ArrowLeft01Icon,
+  ArrowRight01Icon,
+  ZoomInAreaIcon,
+  ZoomOutAreaIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+
+import { buttonVariants } from "@/components/ui/button";
+
+type PdfPreviewToolbarProps = {
+  pageCount: number;
+  selectedPage: number;
+  zoom: number;
+  isRendering: boolean;
+  isScanning: boolean;
+  canZoomIn: boolean;
+  canZoomOut: boolean;
+  onPreviousPage: () => void;
+  onNextPage: () => void;
+  onZoomIn: () => void;
+  onZoomOut: () => void;
+  onDetectQr: () => void;
+};
+
+export function PdfPreviewToolbar({
+  pageCount,
+  selectedPage,
+  zoom,
+  isRendering,
+  isScanning,
+  canZoomIn,
+  canZoomOut,
+  onPreviousPage,
+  onNextPage,
+  onZoomIn,
+  onZoomOut,
+  onDetectQr,
+}: PdfPreviewToolbarProps) {
+  return (
+    <div className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="text-sm text-zinc-600">
+        Page <span className="font-medium text-zinc-950">{selectedPage}</span>
+        {pageCount ? ` of ${pageCount}` : null}
+        {isRendering ? " · Rendering" : null}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <button
+          className={buttonVariants({ variant: "secondary", size: "sm" })}
+          disabled={selectedPage <= 1}
+          onClick={onPreviousPage}
+          type="button"
+        >
+          <HugeiconsIcon icon={ArrowLeft01Icon} size={16} strokeWidth={1.8} />
+          Previous
+        </button>
+        <button
+          className={buttonVariants({ variant: "secondary", size: "sm" })}
+          disabled={selectedPage >= pageCount}
+          onClick={onNextPage}
+          type="button"
+        >
+          Next
+          <HugeiconsIcon icon={ArrowRight01Icon} size={16} strokeWidth={1.8} />
+        </button>
+        <button
+          className={buttonVariants({ variant: "secondary", size: "sm" })}
+          disabled={!canZoomOut}
+          onClick={onZoomOut}
+          type="button"
+        >
+          <HugeiconsIcon icon={ZoomOutAreaIcon} size={16} strokeWidth={1.8} />
+          Zoom out
+        </button>
+        <button
+          className={buttonVariants({ variant: "secondary", size: "sm" })}
+          disabled={!canZoomIn}
+          onClick={onZoomIn}
+          type="button"
+        >
+          <HugeiconsIcon icon={ZoomInAreaIcon} size={16} strokeWidth={1.8} />
+          Zoom in
+        </button>
+        <span className="inline-flex h-9 items-center rounded-md border border-zinc-200 px-3 text-sm text-zinc-600">
+          {Math.round(zoom * 100)}%
+        </span>
+        <button
+          className={buttonVariants({ variant: "primary", size: "sm" })}
+          disabled={isRendering || isScanning || pageCount === 0}
+          onClick={onDetectQr}
+          type="button"
+        >
+          {isScanning ? "Scanning..." : "Detect QR"}
+        </button>
+      </div>
+    </div>
+  );
+}

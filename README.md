@@ -1,36 +1,117 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Secure PDF QR Storage Platform
 
-## Getting Started
+This repository is a staged build of a secure PDF QR replacement platform. The app will let authenticated owners upload PDFs, identify an existing QR area, replace only that QR region with a newly generated app-hosted QR, and enforce verification, open, or download access through server-controlled routes.
 
-First, run the development server:
+The repo uses:
+
+- Next.js `16.2.6` App Router
+- React `19`
+- TypeScript strict mode
+- Tailwind CSS v4
+- `shadcn/ui`
+- Supabase client packages
+- Prisma and PostgreSQL or Supabase Postgres
+
+Stage 01 is intentionally foundation-only. It does not implement auth, database models, uploads, or PDF processing yet.
+
+## Current structure
+
+The repo deliberately keeps top-level `app/` and `lib/` folders. This matches the existing project shape and the plan documents, and avoids a needless `src/` migration before product work starts.
+
+Key folders:
+
+- `app/`: App Router routes, layouts, and route handlers
+- `components/`: shared layout and presentational building blocks
+- `features/`: feature-scoped UI, actions, schemas, and server orchestration
+- `server/`: cross-feature server services such as auth, DB, PDF, QR, audit, rate limiting, and storage
+- `plans/`: staged implementation prompts and repo rules
+
+## Stage workflow
+
+Implementation follows the plan files in `plans/`:
+
+1. Read `plans/README.md`
+2. Read `plans/phases.md`
+3. Read the relevant stage file, for example `plans/stage-01-base-project-setup.md`
+4. Read the relevant local Next.js docs from `node_modules/next/dist/docs/`
+5. Implement only that stage
+6. Update the stage tracking block
+
+## Environment setup
+
+Copy `.env.example` to `.env.local` and fill the values before working on runtime-backed stages:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Required variables:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `DATABASE_URL`
+- `NEXT_PUBLIC_APP_URL`
+- `BETTER_AUTH_SECRET`
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_STORAGE_BUCKET_ORIGINAL`
+- `SUPABASE_STORAGE_BUCKET_PROCESSED`
+- `MAX_PDF_SIZE_MB`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Notes:
 
-## Learn More
+- `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are included because browser-safe Supabase helpers need explicit public env keys.
+- `lib/env.ts` performs strict server-side validation with Zod for the full env surface.
+- Keep `.env*` files untracked.
 
-To learn more about Next.js, take a look at the following resources:
+## Installed baseline dependencies
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Stage 01 adds the packages needed across stages 02 through 12:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `@prisma/client` and `prisma`
+- `better-auth`
+- `zod`
+- `pdfjs-dist`
+- `jsqr`
+- `react-rnd`
+- `qrcode`
+- `pdf-lib`
+- `file-type`
+- `server-only`
 
-## Deploy on Vercel
+One operational note: `pnpm` blocked Prisma build scripts during install. Before running Prisma generate or migrations in Stage 02, approve the Prisma builds if your environment still requires it.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Commands
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+pnpm dev
+pnpm lint
+pnpm exec tsc --noEmit
+```
+
+## Near-term stage map
+
+- Stage 01: base setup, env validation, dependency audit
+- Stage 02: Prisma schema and owner bootstrap guard
+- Stage 03: Better Auth setup, owner bootstrap, login, protection
+- Stage 04: public and legal pages
+- Stage 05 to 12: dashboard, upload, preview, QR selection, access settings, QR generation, and PDF QR replacement
+
+Refer to `plans/phases.md` for the full stage map through delivery, security hardening, testing, and final encryption.
+
+## Product constraints
+
+- Final processing must replace only the QR region, not re-render entire pages
+- Raw storage URLs must never become the public access path
+- Auth, DB, storage, PDF, QR, audit, and rate limiting logic must remain server-owned
+- Public verification pages must not imply government or official approval
+- Encryption claims stay out of product copy until the final encryption stage is actually implemented
+
+## Reference documents
+
+- `plans/README.md`
+- `plans/phases.md`
+- `plans/architecture.md`
+- `plans/design-rules.md`
+- `plans/security.md`
