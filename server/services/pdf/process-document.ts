@@ -13,6 +13,7 @@ import { buildQrTargetUrl } from "@/server/services/qr/qr-target-url";
 import {
   createProcessedPdfStoragePath,
   downloadOriginalPdf,
+  removeProcessedPdf,
   uploadProcessedPdf,
 } from "@/server/services/storage/supabase-storage";
 
@@ -194,9 +195,7 @@ export async function processDocument(
   } catch (error) {
     // Attempt to clean up the uploaded file on DB failure
     try {
-      const { removeOriginalPdf } =
-        await import("@/server/services/storage/supabase-storage");
-      // Note: we use the processed bucket here
+      await removeProcessedPdf(processedPath);
     } catch {
       // Best-effort cleanup
     }

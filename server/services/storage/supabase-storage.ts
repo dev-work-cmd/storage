@@ -44,9 +44,13 @@ export async function uploadOriginalPdf(input: {
 }
 
 export async function removeOriginalPdf(path: string) {
-  await supabaseAdmin.storage
+  const { error } = await supabaseAdmin.storage
     .from(env.SUPABASE_STORAGE_BUCKET_ORIGINAL)
     .remove([path]);
+
+  if (error) {
+    throw new Error("Original PDF removal failed.");
+  }
 }
 
 export async function downloadOriginalPdf(path: string) {
@@ -96,4 +100,14 @@ export async function downloadProcessedPdf(path: string) {
   }
 
   return data;
+}
+
+export async function removeProcessedPdf(path: string) {
+  const { error } = await supabaseAdmin.storage
+    .from(env.SUPABASE_STORAGE_BUCKET_PROCESSED)
+    .remove([path]);
+
+  if (error) {
+    throw new Error("Processed PDF removal failed.");
+  }
 }

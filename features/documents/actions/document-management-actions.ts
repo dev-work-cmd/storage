@@ -10,6 +10,10 @@ import { AuditEvent, AuditOutcome } from "@prisma/client";
 import { requireCurrentSession } from "@/server/auth/session";
 import { prisma } from "@/server/db/prisma";
 import { processDocument } from "@/server/services/pdf/process-document";
+import {
+  removeOriginalPdf,
+  removeProcessedPdf,
+} from "@/server/services/storage/supabase-storage";
 
 export type ManagementActionResult =
   | { status: "success"; message: string }
@@ -145,28 +149,74 @@ export async function enableDocument(
 }
 
 export async function deleteDocument(publicId: string) {
-  const updated = await updateOwnerDocument(
-    publicId,
-    {
+  const session = await requireCurrentSession();
+
+  const document = await prisma.document.findFirst({
+    where: {
+      publicId,
+      ownerId: session.user.id,
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      originalFilePath: true,
+      processedFilePath: true,
+    },
+  });
+
+  if (!document) {
+    return {
+      status: "error",
+      message: "Document could not be deleted.",
+    };
+  }
+
+  try {
+    if (document.originalFilePath) {
+      await removeOriginalPdf(document.originalFilePath);
+    }
+
+    if (document.processedFilePath) {
+      await removeProcessedPdf(document.processedFilePath);
+    }
+  } catch (error) {
+    return {
+      status: "error",
+      message:
+        error instanceof Error
+          ? `Document files could not be removed from storage: ${error.message}`
+          : "Document files could not be removed from storage.",
+    };
+  }
+
+  await prisma.document.update({
+    where: {
+      id: document.id,
+    },
+    data: {
       deletedAt: new Date(),
       isEnabled: false,
       isRevoked: true,
       revokedAt: new Date(),
+      originalFilePath: null,
+      processedFilePath: null,
+      auditLogs: {
+        create: {
+          actorUserId: session.user.id,
+          event: AuditEvent.DOCUMENT_DELETED,
+          outcome: AuditOutcome.SUCCESS,
+          metadata: { action: "soft_delete", storageCleanup: true },
+        },
+      },
     },
-    {
-      event: AuditEvent.DOCUMENT_DELETED,
-      metadata: { action: "soft_delete" },
-    },
-  );
+  });
 
-  if (updated) {
-    redirect("/dashboard/documents");
-  }
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/documents");
+  revalidatePath(`/dashboard/documents/${publicId}`);
+  revalidatePath(`/verify/${publicId}`);
 
-  return {
-    status: "error",
-    message: "Document could not be deleted.",
-  };
+  redirect("/dashboard/documents");
 }
 
 export async function regenerateDocument(

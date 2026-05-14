@@ -3,8 +3,36 @@
 // Must authorize through the current session before reading audit records.
 import "server-only";
 
+import { Prisma } from "@prisma/client";
+
 import { requireCurrentSession } from "@/server/auth/session";
 import { prisma } from "@/server/db/prisma";
+
+const ownerAuditLogSelect = {
+  id: true,
+  event: true,
+  outcome: true,
+  ipAddress: true,
+  userAgent: true,
+  metadata: true,
+  createdAt: true,
+  actor: {
+    select: {
+      username: true,
+      name: true,
+    },
+  },
+  document: {
+    select: {
+      publicId: true,
+      title: true,
+    },
+  },
+} satisfies Prisma.AuditLogSelect;
+
+type OwnerAuditLogRecord = Prisma.AuditLogGetPayload<{
+  select: typeof ownerAuditLogSelect;
+}>;
 
 export type OwnerAuditLogItem = Awaited<
   ReturnType<typeof getOwnerAuditLogs>
@@ -30,30 +58,10 @@ export async function getOwnerAuditLogs() {
       createdAt: "desc",
     },
     take: 100,
-    select: {
-      id: true,
-      event: true,
-      outcome: true,
-      ipAddress: true,
-      userAgent: true,
-      metadata: true,
-      createdAt: true,
-      actor: {
-        select: {
-          username: true,
-          name: true,
-        },
-      },
-      document: {
-        select: {
-          publicId: true,
-          title: true,
-        },
-      },
-    },
+    select: ownerAuditLogSelect,
   });
 
-  return logs.map((log) => ({
+  return logs.map((log: OwnerAuditLogRecord) => ({
     id: log.id,
     event: log.event,
     outcome: log.outcome,
