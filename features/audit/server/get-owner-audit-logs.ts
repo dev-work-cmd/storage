@@ -3,7 +3,7 @@
 // Must authorize through the current session before reading audit records.
 import "server-only";
 
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 
 import { requireCurrentSession } from "@/server/auth/session";
 import { prisma } from "@/server/db/prisma";
