@@ -4,7 +4,13 @@
 // Provides client-side search, filtering, sorting, and pagination over safe owner document DTOs.
 // Must not fetch or expose anything beyond the server-provided document metadata.
 import Link from "next/link";
-import { useDeferredValue, useEffect, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import {
+  startTransition,
+  useDeferredValue,
+  useEffect,
+  useState,
+} from "react";
 import {
   ArrowUpDown,
   BarChart3,
@@ -15,7 +21,6 @@ import {
   FileText,
   Funnel,
   LayoutGrid,
-  Menu,
   MoreHorizontal,
   Pencil,
   Plus,
@@ -31,7 +36,6 @@ import {
 
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { logout } from "@/features/auth/actions/auth-actions";
 import type { OwnerDocumentListItem } from "@/features/documents/server/get-owner-documents";
 import { cn } from "@/lib/utils";
 
@@ -48,6 +52,7 @@ type AccessFilter =
   | "disabled";
 
 const PAGE_SIZE_OPTIONS = [5, 10, 20] as const;
+const SEARCH_DEBOUNCE_MS = 250;
 
 function formatDate(date: Date | string) {
   return new Date(date).toLocaleDateString("en", {
@@ -338,7 +343,11 @@ export function DocumentList({
 }: {
   documents: OwnerDocumentListItem[];
 }) {
-  const [query, setQuery] = useState("");
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const routeQuery = searchParams.get("q") ?? "";
+  const [query, setQuery] = useState(routeQuery);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [accessFilter, setAccessFilter] = useState<AccessFilter>("all");
   const [sortKey, setSortKey] = useState<SortKey>("createdAt");
@@ -348,6 +357,10 @@ export function DocumentList({
   const [page, setPage] = useState(1);
   const [viewMode, setViewMode] = useState<ViewMode>("table");
   const deferredQuery = useDeferredValue(query);
+
+  useEffect(() => {
+    setQuery(routeQuery);
+  }, [routeQuery]);
 
   useEffect(() => {
     setPage(1);
@@ -444,8 +457,40 @@ export function DocumentList({
     setSortDirection(nextKey === "title" ? "asc" : "desc");
   }
 
+  function commitSearchQuery(nextValue: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    const trimmed = nextValue.trim();
+
+    if (trimmed.length > 0) {
+      params.set("q", nextValue);
+    } else {
+      params.delete("q");
+    }
+
+    const href = params.toString()
+      ? `${pathname}?${params.toString()}`
+      : pathname;
+
+    startTransition(() => {
+      router.replace(href, { scroll: false });
+    });
+  }
+
+  useEffect(() => {
+    if (query.trim() === routeQuery.trim()) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      commitSearchQuery(query);
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [pathname, query, routeQuery, searchParams]);
+
   function clearFilters() {
     setQuery("");
+    commitSearchQuery("");
     setStatusFilter("all");
     setAccessFilter("all");
   }
@@ -461,43 +506,14 @@ export function DocumentList({
 
   return (
     <div className="space-y-6">
-      {/* ── Mobile top bar ──────────────────────────────────────── */}
-      <div className="lg:hidden">
-        <div className="flex items-center justify-between gap-3">
-          <Link
-            aria-label="Open overview"
-            className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-[#eadfd6] bg-white text-[#5f4b42]"
-            href="/dashboard"
-          >
-            <Menu size={18} strokeWidth={1.8} />
-          </Link>
-          <div className="text-center">
-            <p className="text-[0.68rem] uppercase tracking-[0.28em] text-[#8a776d]">
-              Dashboard
-            </p>
-            <h1 className="mt-0.5 text-xl font-semibold text-[#241915]">
-              All documents
-            </h1>
-          </div>
-          <Link
-            aria-label="New document"
-            className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-[#743326] bg-[#743326] text-white shadow-[0_18px_30px_-22px_rgba(84,43,28,0.9)]"
-            href="/dashboard/documents/new"
-          >
-            <Plus size={18} strokeWidth={1.8} />
-          </Link>
-        </div>
-      </div>
-
       <Card className="overflow-visible rounded-[2rem] border-[#eadfd6] bg-white shadow-[0_28px_70px_-42px_rgba(84,53,28,0.22)]">
         <CardContent className="p-0">
-          {/* ── Desktop header ──────────────────────────────────── */}
-          <div className="hidden items-start justify-between gap-4 border-b border-[#eadfd6] px-7 py-7 lg:flex">
+          <div className="border-b border-[#eadfd6] px-5 py-6 lg:flex lg:items-start lg:justify-between lg:gap-4 lg:px-7 lg:py-7">
             <div>
               <p className="text-[0.72rem] uppercase tracking-[0.28em] text-[#8a776d]">
                 Dashboard
               </p>
-              <h1 className="mt-2 text-4xl leading-none text-[#241915]">
+              <h1 className="mt-2 text-3xl leading-none text-[#241915] lg:text-4xl">
                 All documents
               </h1>
               <p className="mt-3 max-w-3xl text-sm leading-6 text-[#7c6b63]">
@@ -505,7 +521,7 @@ export function DocumentList({
                 from one protected owner-only view.
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="mt-4 flex items-center gap-3 lg:mt-0">
               <Link
                 className={buttonVariants({
                   variant: "primary",
@@ -516,17 +532,6 @@ export function DocumentList({
                 <Plus size={18} strokeWidth={1.8} />
                 New Document
               </Link>
-              <form action={logout}>
-                <button
-                  className={buttonVariants({
-                    variant: "secondary",
-                    className: "rounded-[1rem] px-5",
-                  })}
-                  type="submit"
-                >
-                  Sign out
-                </button>
-              </form>
             </div>
           </div>
 

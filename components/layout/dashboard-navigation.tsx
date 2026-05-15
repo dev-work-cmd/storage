@@ -9,14 +9,12 @@ import {
   ClipboardList,
   Files,
   LayoutDashboard,
-  LogOut,
   Upload,
   type LucideIcon,
 } from "lucide-react";
 
 import { AppWordmark } from "@/components/shared/app-wordmark";
 import { buttonVariants } from "@/components/ui/button";
-import { logout } from "@/features/auth/actions/auth-actions";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -84,7 +82,9 @@ export function DashboardSidebar({ userName }: { userName: string }) {
   return (
     <aside className="hidden h-full w-[18rem] shrink-0 rounded-[2rem] border border-[color:oklch(0.92_0.012_74)] bg-[linear-gradient(180deg,rgba(255,255,255,0.95),rgba(248,243,238,0.88))] shadow-[0_28px_80px_-44px_rgba(84,53,28,0.28)] lg:flex">
       <div className="flex min-h-full w-full flex-col px-6 py-7">
-        <AppWordmark />
+        <div className="flex items-start justify-between gap-3">
+          <AppWordmark />
+        </div>
 
         <nav aria-label="Dashboard navigation" className="mt-8 flex-1">
           <ul className="space-y-2">
@@ -123,18 +123,6 @@ export function DashboardSidebar({ userName }: { userName: string }) {
             Signed in as {userName}. Review storage, QR behavior, and protected
             document delivery from one owner-only workspace.
           </p>
-          <form action={logout} className="mt-5">
-            <button
-              className={buttonVariants({
-                variant: "secondary",
-                className: "w-full rounded-[1rem]",
-              })}
-              type="submit"
-            >
-              <LogOut size={18} strokeWidth={1.8} />
-              Sign out
-            </button>
-          </form>
         </div>
       </div>
     </aside>
@@ -158,7 +146,7 @@ export function DashboardMobileBottomNav() {
             <li key={item.href}>
               <Link
                 className={cn(
-                  "flex flex-col items-center gap-1 rounded-[1.1rem] px-2 py-2 text-[0.72rem] font-medium transition",
+                  "flex flex-col items-center justify-center gap-1 rounded-[1.1rem] px-2 py-2 text-[0.72rem] font-medium transition sm:gap-1.5",
                   active
                     ? "bg-[linear-gradient(180deg,rgba(116,51,38,0.98),rgba(88,38,29,0.94))] text-white shadow-[0_18px_34px_-24px_rgba(84,43,28,0.85)]"
                     : "text-[color:oklch(0.47_0.023_38)] hover:bg-[color:oklch(0.97_0.008_80)]",
@@ -166,7 +154,7 @@ export function DashboardMobileBottomNav() {
                 href={item.href}
               >
                 <ItemIcon size={18} strokeWidth={1.8} />
-                <span>{item.label}</span>
+                <span className="hidden sm:inline">{item.label}</span>
               </Link>
             </li>
           );

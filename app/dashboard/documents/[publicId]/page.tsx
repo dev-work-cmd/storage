@@ -174,9 +174,9 @@ export default async function DocumentPreviewPage({
               Stored document preview
             </h2>
             <p className="mt-1 text-sm text-[color:oklch(0.49_0.024_39)]">
-              This document is stored privately and has no QR edit mode
-              selected yet. Choose Replace QR or Insert QR above whenever you
-              want to start editing.
+              This document is stored privately and has no QR edit mode selected
+              yet. Choose Replace QR or Insert QR above whenever you want to
+              start editing.
             </p>
           </CardHeader>
         </Card>
@@ -213,7 +213,7 @@ export default async function DocumentPreviewPage({
             <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
               <div>
                 <dt className="text-[color:oklch(0.5_0.024_38)]">Filename</dt>
-                <dd className="mt-1 truncate font-medium text-zinc-950">
+                <dd className="mt-1 truncate font-medium text-zinc-950 max-w-44">
                   {document.originalFilename}
                 </dd>
               </div>
@@ -298,7 +298,10 @@ export default async function DocumentPreviewPage({
               {document.processedFileUrl ? (
                 <>
                   <a
-                    className={buttonVariants({ variant: "primary", size: "sm" })}
+                    className={buttonVariants({
+                      variant: "primary",
+                      size: "sm",
+                    })}
                     href={`${document.processedFileUrl}?download=1`}
                   >
                     Download latest processed PDF
@@ -330,7 +333,7 @@ export default async function DocumentPreviewPage({
           <div className="grid gap-3 text-sm sm:grid-cols-4">
             <div>
               <p className="text-[color:oklch(0.5_0.024_38)]">Original file</p>
-              <p className="mt-1 truncate font-medium text-zinc-950">
+              <p className="mt-1 truncate font-medium text-zinc-950 max-w-44">
                 {document.originalFilename}
               </p>
             </div>
@@ -361,7 +364,9 @@ export default async function DocumentPreviewPage({
         <CardContent>
           <PdfPreviewViewer
             fileUrl={document.fileUrl}
-            allowQrEditing={document.status === "DRAFT" && !!document.workflowType}
+            allowQrEditing={
+              document.status === "DRAFT" && !!document.workflowType
+            }
             editingExperience={
               document.workflowType === "INSERT_NEW_QR" ? "insert" : "replace"
             }
@@ -441,8 +446,8 @@ export default async function DocumentPreviewPage({
               {!document.workflowType
                 ? "This document is currently stored only. Choose Replace QR or Insert QR above when you want to begin editing."
                 : document.status === "PROCESSED"
-                ? "Select Replace QR or Insert QR above to return this document to editable draft mode, then process a new version from the original PDF."
-                : "This document is not currently editable. Choose an edit mode above to prepare it for reprocessing."}
+                  ? "Select Replace QR or Insert QR above to return this document to editable draft mode, then process a new version from the original PDF."
+                  : "This document is not currently editable. Choose an edit mode above to prepare it for reprocessing."}
             </div>
           )}
         </CardContent>
