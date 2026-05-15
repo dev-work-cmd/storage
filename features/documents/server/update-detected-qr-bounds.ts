@@ -88,8 +88,7 @@ export async function updateDetectedQrBounds(
 
     return {
       code: "DB_ERROR",
-      message:
-        error instanceof Error ? error.message : "Failed to save QR bounds.",
+      message: "Failed to save QR bounds.",
     };
   }
 }

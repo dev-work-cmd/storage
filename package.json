@@ -4,9 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate",
     "prisma:migrate:dev": "prisma migrate dev"
@@ -14,8 +16,6 @@
   "dependencies": {
     "@better-auth/passkey": "^1.6.11",
     "@better-auth/prisma-adapter": "^1.6.11",
-    "@hugeicons/core-free-icons": "^4.1.4",
-    "@hugeicons/react": "^1.1.6",
     "@node-rs/argon2": "^2.0.2",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
@@ -26,6 +26,7 @@
     "clsx": "^2.1.1",
     "file-type": "^22.0.1",
     "jsqr": "^1.4.0",
+    "lucide-react": "^1.16.0",
     "next": "16.2.6",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^5.7.284",
@@ -52,6 +53,7 @@
     "prisma": "^7.8.0",
     "shadcn": "^4.7.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.6"
   }
 }

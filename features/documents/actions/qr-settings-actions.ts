@@ -51,6 +51,7 @@ export async function saveQrSettings(
     }
 
     revalidatePath(`/dashboard/documents/${parsed.data.publicId}`);
+    revalidatePath(`/dashboard/documents/${parsed.data.publicId}/insert-qr`);
 
     return {
       status: "success",
@@ -66,10 +67,7 @@ export async function saveQrSettings(
 
     return {
       status: "error",
-      message:
-        error instanceof Error
-          ? error.message
-          : "An unexpected error occurred.",
+      message: "The access settings could not be saved. Try again.",
     };
   }
 }

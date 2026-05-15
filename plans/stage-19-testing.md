@@ -2,9 +2,9 @@
 
 ## Status
 
-- State: `Not started`
+- State: `Done`
 - Phase: `Phase 6 - Security, Audit, and Quality`
-- Owner: `Unassigned`
+- Owner: `Codex`
 
 ## Core focus
 
@@ -54,8 +54,8 @@ Constraints:
 
 ## Tracking
 
-- Start date:
-- Finish date:
-- Notes:
-- Blockers:
-- Follow-ups:
+- Start date: `2026-05-14`
+- Finish date: `2026-05-14`
+- Notes: `Added a Vitest-based CI-friendly test runner, environment setup for server-side modules, focused unit coverage for PDF upload validation, QR coordinate validation/conversion, secure PDF response headers, short-lived file access grants, public document access policy decisions, and proxy-based dashboard protection. Added a manual PDF fidelity checklist to verify that only the QR area changes in processed output and that public access rules behave correctly.`
+- Blockers: `This stage does not include browser E2E coverage or database-backed integration fixtures yet. Public access policy tests use mocked Prisma/argon2 boundaries rather than a live database.`
+- Follow-ups: `A later quality pass can add browser-driven E2E flows for upload, preview, manual selection, and verification screens, plus seeded integration tests for Prisma-backed access-policy updates.`

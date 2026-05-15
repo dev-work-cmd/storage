@@ -27,6 +27,7 @@ export async function processDocumentAction(
 
     if (result.status === "success") {
       revalidatePath(`/dashboard/documents/${publicId}`);
+      revalidatePath(`/dashboard/documents/${publicId}/insert-qr`);
     }
 
     return result;
@@ -40,10 +41,7 @@ export async function processDocumentAction(
 
     return {
       status: "error",
-      message:
-        error instanceof Error
-          ? error.message
-          : "An unexpected error occurred during processing.",
+      message: "The document could not be processed. Try again.",
     };
   }
 }

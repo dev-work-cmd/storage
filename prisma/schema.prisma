@@ -31,6 +31,12 @@ enum QrMode {
   DOWNLOAD
 }
 
+/// Keeps replacement and insertion workflows explicit in management and processing branches.
+enum DocumentWorkflowType {
+  REPLACE_EXISTING_QR
+  INSERT_NEW_QR
+}
+
 /// Audit events remain explicit to keep security logging queryable and consistent.
 enum AuditEvent {
   LOGIN_SUCCESS
@@ -146,6 +152,7 @@ model Document {
   originalFilePath       String?
   processedFilePath      String?
   status                 DocumentStatus @default(DRAFT)
+  workflowType           DocumentWorkflowType?
   processingError        String?
   qrMode                 QrMode         @default(VERIFY)
   qrTargetUrl            String?

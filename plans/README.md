@@ -39,3 +39,6 @@ This folder turns the product brief into an execution system for the current rep
 
 - `phases.md`: grouped roadmap and dependency map
 - `stage-01-base-project-setup.md` through `stage-20-final-encryption-stage.md`: execution files
+- `master-build-prompt-qr-insertion.md`: feature-specific master prompt for additive QR insertion workflow
+- `qr-insertion-feature-breakdown.md`: implementation slices for the QR insertion feature
+- `saas-plan.md`: concrete SaaS positioning, workspace model, pricing, and Stripe billing roadmap

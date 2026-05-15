@@ -1,6 +1,6 @@
 // Owns persistence of QR behavior and access settings before document processing.
 // Re-checks document ownership before updating any policy fields.
-// Must never allow settings persistence on processed or deleted documents.
+// Must only allow settings persistence while the document is back in editable draft mode.
 // Computes and stores the QR target URL from the selected mode.
 import "server-only";
 
@@ -43,7 +43,7 @@ export async function updateDocumentQrSettings(
       publicId: input.publicId,
       ownerId: session.user.id,
       deletedAt: null,
-      status: { in: ["DRAFT"] },
+      status: "DRAFT",
     },
     data: updateData,
   });

@@ -1,12 +1,17 @@
-// Owns end-to-end document processing: QR replacement and storage finalization.
-// Orchestrates: load original → generate QR → replace in PDF → upload processed → update record.
-// Must never expose raw storage paths or internal pipeline details to clients.
+// Owns end-to-end document processing for both replacement and insertion workflows.
+// Orchestrates: load original → generate QR → mutate PDF → upload processed → update record.
+// Must keep replacement behavior unchanged while routing insertion to its own primitive.
 import "server-only";
 
-import { AuditEvent, AuditOutcome } from "@prisma/client";
+import {
+  AuditEvent,
+  AuditOutcome,
+  DocumentWorkflowType,
+} from "@prisma/client";
 
 import { prisma } from "@/server/db/prisma";
 import { requireCurrentSession } from "@/server/auth/session";
+import { insertQrIntoPdf } from "@/server/services/pdf/insert-qr";
 import { replaceQrInPdf } from "@/server/services/pdf/replace-qr";
 import { generateQrPng } from "@/server/services/qr/qr-image-generator";
 import { buildQrTargetUrl } from "@/server/services/qr/qr-target-url";
@@ -26,10 +31,11 @@ export interface ProcessDocumentResult {
   message: string;
   processedFileUrl?: string;
   verificationUrl?: string;
+  workflowType?: DocumentWorkflowType;
 }
 
 /**
- * Processes a document: replaces QR code and stores the processed PDF.
+ * Processes a document by applying the workflow-specific QR mutation and storing the result.
  *
  * Pipeline:
  * 1. Validate the document is in DRAFT status and has all required data
@@ -64,6 +70,7 @@ export async function processDocument(
       qrWidth: true,
       qrHeight: true,
       qrMode: true,
+      workflowType: true,
       legalConfirmedAt: true,
     },
   });
@@ -90,6 +97,13 @@ export async function processDocument(
     };
   }
 
+  if (!document.workflowType) {
+    return {
+      status: "error",
+      message: "Choose replace QR or insert QR before processing this document.",
+    };
+  }
+
   if (
     document.qrPageNumber === null ||
     document.qrX === null ||
@@ -113,7 +127,7 @@ export async function processDocument(
   let originalPdf: Blob;
   try {
     originalPdf = await downloadOriginalPdf(document.originalFilePath);
-  } catch (error) {
+  } catch {
     return {
       status: "error",
       message: "Failed to download the original PDF for processing.",
@@ -127,17 +141,17 @@ export async function processDocument(
   try {
     const qrResult = await generateQrPng(targetUrl);
     qrPngBuffer = qrResult.pngBuffer;
-  } catch (error) {
+  } catch {
     return {
       status: "error",
       message: "Failed to generate the QR code image.",
     };
   }
 
-  // 4. Replace QR in PDF
+  // 4. Mutate PDF using the stored workflow type
   let processedPdfBuffer: Buffer;
   try {
-    const replacementResult = await replaceQrInPdf({
+    const mutationInput = {
       pdfBuffer: originalBuffer,
       qrPngBuffer,
       pageNumber: document.qrPageNumber,
@@ -145,15 +159,25 @@ export async function processDocument(
       y: Number(document.qrY),
       width: Number(document.qrWidth),
       height: Number(document.qrHeight),
-    });
-    processedPdfBuffer = replacementResult.pdfBuffer;
+    };
+
+    const mutationResult =
+      document.workflowType === DocumentWorkflowType.INSERT_NEW_QR
+        ? await insertQrIntoPdf(mutationInput)
+        : await replaceQrInPdf(mutationInput);
+    processedPdfBuffer = mutationResult.pdfBuffer;
   } catch (error) {
+    const workflowLabel =
+      document.workflowType === DocumentWorkflowType.INSERT_NEW_QR
+        ? "QR insertion"
+        : "QR replacement";
+
     return {
       status: "error",
       message:
         error instanceof Error
-          ? `QR replacement failed: ${error.message}`
-          : "QR replacement failed unexpectedly.",
+          ? `${workflowLabel} failed: ${error.message}`
+          : `${workflowLabel} failed unexpectedly.`,
     };
   }
 
@@ -164,7 +188,7 @@ export async function processDocument(
       path: processedPath,
       buffer: processedPdfBuffer,
     });
-  } catch (error) {
+  } catch {
     return {
       status: "error",
       message: "Failed to upload the processed PDF.",
@@ -187,12 +211,13 @@ export async function processDocument(
             outcome: AuditOutcome.SUCCESS,
             metadata: {
               qrMode: document.qrMode,
+              workflowType: document.workflowType,
             },
           },
         },
       },
     });
-  } catch (error) {
+  } catch {
     // Attempt to clean up the uploaded file on DB failure
     try {
       await removeProcessedPdf(processedPath);
@@ -207,8 +232,12 @@ export async function processDocument(
 
   return {
     status: "success",
-    message: "QR code replaced successfully. Your processed document is ready.",
+    message:
+      document.workflowType === DocumentWorkflowType.INSERT_NEW_QR
+        ? "QR code inserted successfully. Your processed document is ready."
+        : "QR code replaced successfully. Your processed document is ready.",
     processedFileUrl: `/api/dashboard/documents/${document.publicId}/processed`,
     verificationUrl: targetUrl,
+    workflowType: document.workflowType,
   };
 }

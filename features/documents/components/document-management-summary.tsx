@@ -7,6 +7,14 @@ import { cn } from "@/lib/utils";
 
 import { DocumentManagementActions } from "./document-management-actions";
 
+function formatWorkflowType(workflowType: DocumentManagement["workflowType"]) {
+  if (!workflowType) {
+    return "Not selected yet";
+  }
+
+  return workflowType === "INSERT_NEW_QR" ? "Insert new QR" : "Replace existing QR";
+}
+
 function formatDate(date: Date | null) {
   if (!date) {
     return "Not set";
@@ -95,6 +103,12 @@ export function DocumentManagementSummary({
             <dt className="text-[color:oklch(0.5_0.024_38)]">Status</dt>
             <dd className="mt-1 font-medium text-zinc-950">
               {document.status}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[color:oklch(0.5_0.024_38)]">Workflow</dt>
+            <dd className="mt-1 font-medium text-zinc-950">
+              {formatWorkflowType(document.workflowType)}
             </dd>
           </div>
           <div>

@@ -4,9 +4,8 @@
 // Provides immediate browser validation while the server remains authoritative.
 // Must not display storage paths, signed URLs, or raw backend errors.
 import { useActionState, useEffect, useRef, useState } from "react";
-import { FileUploadIcon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
 import Link from "next/link";
+import { Upload } from "lucide-react";
 
 import {
   createDocument,
@@ -68,6 +67,9 @@ export function PdfUploadForm({
   }, [state.status]);
 
   const fileError = clientFileError ?? state.fieldErrors?.file?.[0];
+  const successHref = state.documentPublicId
+    ? `/dashboard/documents/${state.documentPublicId}`
+    : undefined;
 
   return (
     <form
@@ -135,15 +137,15 @@ export function PdfUploadForm({
         >
           <p>
             {state.documentTitle
-              ? `${state.message} ${state.documentTitle} is ready for preview.`
+              ? `${state.message} ${state.documentTitle} is ready for editing.`
               : state.message}
           </p>
           {state.documentPublicId ? (
             <Link
               className="mt-2 inline-flex font-medium underline underline-offset-4"
-              href={`/dashboard/documents/${state.documentPublicId}`}
+              href={successHref ?? "/dashboard/documents"}
             >
-              Open preview
+              Open document workspace
             </Link>
           ) : null}
         </div>
@@ -157,7 +159,7 @@ export function PdfUploadForm({
         disabled={pending || Boolean(clientFileError)}
         type="submit"
       >
-        <HugeiconsIcon icon={FileUploadIcon} size={18} strokeWidth={1.8} />
+        <Upload size={18} strokeWidth={1.8} />
         {pending ? "Uploading..." : "Upload PDF"}
       </button>
     </form>

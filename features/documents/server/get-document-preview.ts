@@ -11,11 +11,11 @@ export type DocumentPreview = {
   title: string;
   originalFilename: string;
   status: string;
+  workflowType: "REPLACE_EXISTING_QR" | "INSERT_NEW_QR" | null;
   createdAt: Date;
   fileUrl: string;
   originalFileUrl: string;
   processedFileUrl: string | null;
-  previewMode: "original" | "processed";
 };
 
 export async function getDocumentPreview(
@@ -37,6 +37,7 @@ export async function getDocumentPreview(
       title: true,
       originalFilename: true,
       status: true,
+      workflowType: true,
       createdAt: true,
       processedFilePath: true,
     },
@@ -48,16 +49,15 @@ export async function getDocumentPreview(
 
   const originalFileUrl = `/api/dashboard/documents/${document.publicId}/original`;
   const processedFileUrl =
-    document.status === "PROCESSED" && document.processedFilePath
+    document.processedFilePath
       ? `/api/dashboard/documents/${document.publicId}/processed`
       : null;
 
   return {
     ...document,
     status: document.status,
-    fileUrl: processedFileUrl ?? originalFileUrl,
+    fileUrl: originalFileUrl,
     originalFileUrl,
     processedFileUrl,
-    previewMode: processedFileUrl ? "processed" : "original",
   };
 }

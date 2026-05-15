@@ -3,12 +3,12 @@
 // Must not implement upload behavior before Stage 06.
 import Link from "next/link";
 import {
-  Analytics02Icon,
-  FileValidationIcon,
-  FileXIcon,
-  Files01Icon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+  BarChart3,
+  CheckCircle2,
+  Files,
+  TriangleAlert,
+  Upload,
+} from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -43,7 +43,7 @@ export default async function DashboardPage() {
             })}
             href="/dashboard/documents/new"
           >
-            <HugeiconsIcon icon={FileValidationIcon} size={18} strokeWidth={1.8} />
+            <Upload size={18} strokeWidth={1.8} />
             Upload new document
           </Link>
         </CardContent>
@@ -51,25 +51,25 @@ export default async function DashboardPage() {
 
       <section
         aria-label="Document summary"
-        className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+        className="grid gap-2 sm:gap-4 grid-cols-4"
       >
         <MetricCard
-          icon={Files01Icon}
+          icon={Files}
           label="Total documents"
           value={overview.metrics.totalDocuments}
         />
         <MetricCard
-          icon={FileValidationIcon}
+          icon={CheckCircle2}
           label="Processed"
           value={overview.metrics.processedDocuments}
         />
         <MetricCard
-          icon={FileXIcon}
+          icon={TriangleAlert}
           label="Failed"
           value={overview.metrics.failedDocuments}
         />
         <MetricCard
-          icon={Analytics02Icon}
+          icon={BarChart3}
           label="Scans"
           value={overview.metrics.scanCount}
         />
