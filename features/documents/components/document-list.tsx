@@ -263,45 +263,22 @@ function MobileStatTile({
   const Icon = icon;
 
   return (
-    <div className="flex flex-col items-start gap-1 rounded-[1.1rem] border border-[#eadfd6] bg-white px-3 py-3 shadow-[0_8px_20px_-14px_rgba(96,62,34,0.18)]">
+    <div className="flex min-w-0 flex-col items-center gap-1 rounded-[0.95rem] border border-[#eadfd6] bg-white px-2 py-2 text-center shadow-[0_6px_16px_-14px_rgba(96,62,34,0.16)]">
       <span
         className={cn(
-          "inline-flex h-7 w-7 items-center justify-center rounded-xl border",
+          "inline-flex h-6 w-6 items-center justify-center rounded-lg border",
           tone,
         )}
       >
-        <Icon size={14} strokeWidth={1.8} />
+        <Icon size={12} strokeWidth={1.9} />
       </span>
-      <p className="text-xl font-semibold leading-none text-[#241915]">
+      <p className="text-base font-semibold leading-none text-[#241915]">
         {value}
       </p>
-      <p className="text-[0.65rem] uppercase tracking-[0.15em] text-[#8a776d]">
+      <p className="line-clamp-2 text-[0.55rem] leading-tight uppercase tracking-[0.08em] text-[#8a776d]">
         {label}
       </p>
     </div>
-  );
-}
-
-function ActionIconLink({
-  href,
-  icon,
-  label,
-}: {
-  href: string;
-  icon: LucideIcon;
-  label: string;
-}) {
-  const Icon = icon;
-
-  return (
-    <Link
-      aria-label={label}
-      className="inline-flex h-10 w-10 items-center justify-center rounded-[0.95rem] border border-[#eadfd6] bg-white text-[#6e5d54] shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] transition hover:border-[#dbc8bb] hover:text-[#241915]"
-      href={href}
-      title={label}
-    >
-      <Icon size={16} strokeWidth={1.8} />
-    </Link>
   );
 }
 
@@ -315,35 +292,40 @@ function DocumentActionsMenu({
       <summary className="flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-[0.95rem] border border-[#eadfd6] bg-white text-[#6e5d54] shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] transition hover:border-[#dbc8bb] hover:text-[#241915] [&::-webkit-details-marker]:hidden">
         <MoreHorizontal size={16} strokeWidth={1.8} />
       </summary>
-      <div className="absolute right-0 top-12 z-20 w-48 rounded-[1rem] border border-[#eadfd6] bg-white p-2 shadow-[0_20px_50px_-26px_rgba(84,53,28,0.22)]">
+      <div className="absolute right-0 top-12 z-20 w-52 rounded-[1rem] border border-[#eadfd6] bg-white p-2 shadow-[0_20px_50px_-26px_rgba(84,53,28,0.22)]">
         <Link
-          className="flex rounded-[0.8rem] px-3 py-2 text-sm text-[#4d3b34] transition hover:bg-[#f8f3ee]"
+          className="flex items-center gap-2 rounded-[0.8rem] px-3 py-2 text-sm text-[#4d3b34] transition hover:bg-[#f8f3ee]"
           href={`/dashboard/documents/${document.publicId}`}
         >
-          Open workspace
+          <Pencil size={15} strokeWidth={1.8} />
+          Edit document
         </Link>
+
         <Link
-          className="flex rounded-[0.8rem] px-3 py-2 text-sm text-[#4d3b34] transition hover:bg-[#f8f3ee]"
+          className="flex items-center gap-2 rounded-[0.8rem] px-3 py-2 text-sm text-[#4d3b34] transition hover:bg-[#f8f3ee]"
           href={`/api/dashboard/documents/${document.publicId}/original`}
           rel="noreferrer"
           target="_blank"
         >
+          <FileText size={15} strokeWidth={1.8} />
           Open original PDF
         </Link>
         {document.status === "PROCESSED" ? (
           <Link
-            className="flex rounded-[0.8rem] px-3 py-2 text-sm text-[#4d3b34] transition hover:bg-[#f8f3ee]"
+            className="flex items-center gap-2 rounded-[0.8rem] px-3 py-2 text-sm text-[#4d3b34] transition hover:bg-[#f8f3ee]"
             href={`/api/dashboard/documents/${document.publicId}/processed`}
             rel="noreferrer"
             target="_blank"
           >
+            <FileText size={15} strokeWidth={1.8} />
             Open processed PDF
           </Link>
         ) : null}
         <Link
-          className="flex rounded-[0.8rem] px-3 py-2 text-sm text-[#4d3b34] transition hover:bg-[#f8f3ee]"
+          className="flex items-center gap-2 rounded-[0.8rem] px-3 py-2 text-sm text-[#4d3b34] transition hover:bg-[#f8f3ee]"
           href="/dashboard/audit"
         >
+          <BarChart3 size={15} strokeWidth={1.8} />
           Audit log
         </Link>
       </div>
@@ -507,7 +489,7 @@ export function DocumentList({
         </div>
       </div>
 
-      <Card className="overflow-hidden rounded-[2rem] border-[#eadfd6] bg-white shadow-[0_28px_70px_-42px_rgba(84,53,28,0.22)]">
+      <Card className="overflow-visible rounded-[2rem] border-[#eadfd6] bg-white shadow-[0_28px_70px_-42px_rgba(84,53,28,0.22)]">
         <CardContent className="p-0">
           {/* ── Desktop header ──────────────────────────────────── */}
           <div className="hidden items-start justify-between gap-4 border-b border-[#eadfd6] px-7 py-7 lg:flex">
@@ -584,7 +566,7 @@ export function DocumentList({
               />
             </section>
             {/* Tablet: 2-col grid */}
-            <section className="grid gap-3 sm:grid-cols-2 xl:hidden">
+            <section className="hidden gap-3 sm:grid sm:grid-cols-2 xl:hidden">
               <StatCard
                 icon={FileText}
                 label="Total documents"
@@ -617,7 +599,7 @@ export function DocumentList({
               />
             </section>
             {/* Mobile: compact 3-col tile grid (matches screenshot) */}
-            <section className="grid grid-cols-3 gap-2 sm:hidden">
+            <section className="grid grid-cols-3 gap-1.5 sm:hidden">
               <MobileStatTile
                 icon={FileText}
                 label="Total"
@@ -651,16 +633,106 @@ export function DocumentList({
             </section>
 
             {/* ── Search / Filter bar ─────────────────────────── */}
-            <section className="rounded-[1.6rem] border border-[#eadfd6] bg-[#fcfaf8] p-3 sm:p-4">
-              <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_11rem_11rem_auto_auto]">
+            <section className="rounded-[1.6rem] border border-[#eadfd6] bg-[#fcfaf8] p-2.5 sm:p-3.5">
+              <div className="space-y-2.5 md:hidden">
                 <label className="relative block">
                   <Search
-                    className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#8a776d]"
-                    size={18}
-                    strokeWidth={1.8}
+                    className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8a776d]"
+                    size={16}
+                    strokeWidth={1.9}
                   />
                   <input
-                    className="h-12 w-full rounded-[1rem] border border-[#eadfd6] bg-white pl-11 pr-4 text-sm text-[#241915] outline-none transition placeholder:text-[#9a8b84] focus:border-[#d7c3b6]"
+                    className="h-11 w-full rounded-[0.95rem] border border-[#eadfd6] bg-white pl-10 pr-4 text-sm text-[#241915] outline-none transition placeholder:text-[#9a8b84] focus:border-[#d7c3b6]"
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search documents by title or filename..."
+                    type="search"
+                    value={query}
+                  />
+                </label>
+
+                <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto] gap-2">
+                  <select
+                    className="h-10 min-w-0 rounded-[0.95rem] border border-[#eadfd6] bg-white px-3 text-xs text-[#3e2a23] outline-none"
+                    onChange={(e) =>
+                      setStatusFilter(e.target.value as StatusFilter)
+                    }
+                    value={statusFilter}
+                  >
+                    <option value="all">All status</option>
+                    <option value="processed">Processed</option>
+                    <option value="pending">Pending</option>
+                    <option value="failed">Failed</option>
+                    <option value="disabled">Disabled</option>
+                  </select>
+
+                  <select
+                    className="h-10 min-w-0 rounded-[0.95rem] border border-[#eadfd6] bg-white px-3 text-xs text-[#3e2a23] outline-none"
+                    onChange={(e) =>
+                      setAccessFilter(e.target.value as AccessFilter)
+                    }
+                    value={accessFilter}
+                  >
+                    <option value="all">All access</option>
+                    <option value="public">Public</option>
+                    <option value="pin">PIN Protected</option>
+                    <option value="limited">Limited</option>
+                    <option value="expires">Expires</option>
+                    <option value="disabled">Disabled</option>
+                  </select>
+
+                  <button
+                    aria-label={hasActiveFilters ? "Clear filters" : "Filters"}
+                    className={buttonVariants({
+                      variant: "secondary",
+                      className: "h-10 w-10 rounded-[0.95rem] px-0",
+                    })}
+                    onClick={clearFilters}
+                    title={hasActiveFilters ? "Clear filters" : "Filters"}
+                    type="button"
+                  >
+                    <Funnel size={16} strokeWidth={1.9} />
+                  </button>
+
+                  <div className="grid h-10 grid-cols-2 gap-1.5 rounded-[0.95rem] border border-[#eadfd6] bg-white p-1">
+                    <button
+                      aria-label="Table view"
+                      className={cn(
+                        "inline-flex items-center justify-center rounded-[0.7rem] transition",
+                        viewMode === "table"
+                          ? "bg-[#f8f3ee] text-[#241915]"
+                          : "text-[#8a776d]",
+                      )}
+                      onClick={() => setViewMode("table")}
+                      type="button"
+                    >
+                      <Table2 size={16} strokeWidth={1.9} />
+                    </button>
+                    <button
+                      aria-label="Cards view"
+                      className={cn(
+                        "inline-flex items-center justify-center rounded-[0.7rem] transition",
+                        viewMode === "cards"
+                          ? "bg-[#f8f3ee] text-[#241915]"
+                          : "text-[#8a776d]",
+                      )}
+                      onClick={() => setViewMode("cards")}
+                      type="button"
+                    >
+                      <LayoutGrid size={16} strokeWidth={1.9} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="hidden items-center gap-2 md:grid md:grid-cols-[minmax(0,1fr)_9rem_9rem_auto_auto] lg:grid-cols-[minmax(0,1fr)_10rem_10rem_auto_auto]">
+                <label className="relative block">
+                  <Search
+                    className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8a776d]"
+                    size={16}
+                    strokeWidth={1.9}
+                  />
+                  <input
+                    className="h-10 w-full rounded-[0.95rem] border border-[#eadfd6] bg-white pl-10 pr-4 text-sm text-[#241915] outline-none transition placeholder:text-[#9a8b84] focus:border-[#d7c3b6]"
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Search documents by title or filename..."
                     type="search"
@@ -669,7 +741,7 @@ export function DocumentList({
                 </label>
 
                 <select
-                  className="h-12 rounded-[1rem] border border-[#eadfd6] bg-white px-4 text-sm text-[#3e2a23] outline-none"
+                  className="h-10 min-w-0 rounded-[0.95rem] border border-[#eadfd6] bg-white px-3 text-xs text-[#3e2a23] outline-none lg:text-sm"
                   onChange={(e) =>
                     setStatusFilter(e.target.value as StatusFilter)
                   }
@@ -683,7 +755,7 @@ export function DocumentList({
                 </select>
 
                 <select
-                  className="h-12 rounded-[1rem] border border-[#eadfd6] bg-white px-4 text-sm text-[#3e2a23] outline-none"
+                  className="h-10 min-w-0 rounded-[0.95rem] border border-[#eadfd6] bg-white px-3 text-xs text-[#3e2a23] outline-none lg:text-sm"
                   onChange={(e) =>
                     setAccessFilter(e.target.value as AccessFilter)
                   }
@@ -698,23 +770,23 @@ export function DocumentList({
                 </select>
 
                 <button
+                  aria-label={hasActiveFilters ? "Clear filters" : "Filters"}
                   className={buttonVariants({
                     variant: "secondary",
-                    className: "h-12 rounded-[1rem] px-4",
+                    className: "h-10 w-10 rounded-[0.95rem] px-0",
                   })}
                   onClick={clearFilters}
+                  title={hasActiveFilters ? "Clear filters" : "Filters"}
                   type="button"
                 >
-                  <Funnel size={18} strokeWidth={1.8} />
-                  {hasActiveFilters ? "Clear filters" : "Filters"}
+                  <Funnel size={16} strokeWidth={1.9} />
                 </button>
 
-                {/* View mode toggle — desktop only (matches screenshot) */}
-                <div className="hidden xl:grid h-12 grid-cols-2 gap-2 rounded-[1rem] border border-[#eadfd6] bg-white p-1">
+                <div className="grid h-10 grid-cols-2 gap-1.5 rounded-[0.95rem] border border-[#eadfd6] bg-white p-1">
                   <button
                     aria-label="Table view"
                     className={cn(
-                      "inline-flex items-center justify-center rounded-[0.8rem] transition",
+                      "inline-flex items-center justify-center rounded-[0.7rem] transition",
                       viewMode === "table"
                         ? "bg-[#f8f3ee] text-[#241915]"
                         : "text-[#8a776d]",
@@ -722,12 +794,12 @@ export function DocumentList({
                     onClick={() => setViewMode("table")}
                     type="button"
                   >
-                    <Table2 size={18} strokeWidth={1.8} />
+                    <Table2 size={16} strokeWidth={1.9} />
                   </button>
                   <button
                     aria-label="Cards view"
                     className={cn(
-                      "inline-flex items-center justify-center rounded-[0.8rem] transition",
+                      "inline-flex items-center justify-center rounded-[0.7rem] transition",
                       viewMode === "cards"
                         ? "bg-[#f8f3ee] text-[#241915]"
                         : "text-[#8a776d]",
@@ -735,7 +807,7 @@ export function DocumentList({
                     onClick={() => setViewMode("cards")}
                     type="button"
                   >
-                    <LayoutGrid size={18} strokeWidth={1.8} />
+                    <LayoutGrid size={16} strokeWidth={1.9} />
                   </button>
                 </div>
               </div>
@@ -762,153 +834,138 @@ export function DocumentList({
                 {/* ── Desktop table (lg+, table mode) ────────── */}
                 {viewMode === "table" && (
                   <div className="hidden lg:block">
-                    <div className="overflow-hidden rounded-[1.6rem] border border-[#eadfd6] bg-white">
-                      <table className="w-full table-fixed">
-                        <colgroup>
-                          <col className="w-[32%]" />
-                          <col className="w-[13%]" />
-                          <col className="w-[18%]" />
-                          <col className="w-[9%]" />
-                          <col className="w-[14%]" />
-                          <col className="w-[14%]" />
-                        </colgroup>
-                        <thead className="border-b border-[#eadfd6] bg-[#fcfaf8]">
-                          <tr>
-                            <th className="px-6 py-4 text-left">
-                              <SortHeader
-                                active={sortKey === "title"}
-                                direction={sortDirection}
-                                onClick={() => toggleSort("title")}
+                    <div className="rounded-[1.6rem] border border-[#eadfd6] bg-white">
+                      <div className="overflow-x-auto rounded-[1.6rem]">
+                        <table className="w-full table-fixed">
+                          <colgroup>
+                            <col className="w-[32%]" />
+                            <col className="w-[13%]" />
+                            <col className="w-[18%]" />
+                            <col className="w-[9%]" />
+                            <col className="w-[14%]" />
+                            <col className="w-[14%]" />
+                          </colgroup>
+                          <thead className="border-b border-[#eadfd6] bg-[#fcfaf8]">
+                            <tr>
+                              <th className="px-6 py-4 text-left">
+                                <SortHeader
+                                  active={sortKey === "title"}
+                                  direction={sortDirection}
+                                  onClick={() => toggleSort("title")}
+                                >
+                                  Document
+                                </SortHeader>
+                              </th>
+                              <th className="px-4 py-4 text-left">
+                                <SortHeader
+                                  active={sortKey === "status"}
+                                  direction={sortDirection}
+                                  onClick={() => toggleSort("status")}
+                                >
+                                  Status
+                                </SortHeader>
+                              </th>
+                              <th className="px-4 py-4 text-left text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-[#8a776d]">
+                                Access
+                              </th>
+                              <th className="px-4 py-4 text-left">
+                                <SortHeader
+                                  active={sortKey === "scanCount"}
+                                  direction={sortDirection}
+                                  onClick={() => toggleSort("scanCount")}
+                                >
+                                  Scans
+                                </SortHeader>
+                              </th>
+                              <th className="px-4 py-4 text-left">
+                                <SortHeader
+                                  active={sortKey === "createdAt"}
+                                  direction={sortDirection}
+                                  onClick={() => toggleSort("createdAt")}
+                                >
+                                  Created
+                                </SortHeader>
+                              </th>
+                              <th className="px-4 py-4 text-left text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-[#8a776d]">
+                                Actions
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {paginatedDocuments.map((document) => (
+                              <tr
+                                className="border-b border-[#f0e7e0] last:border-b-0 hover:bg-[#fdfbf9]"
+                                key={document.publicId}
                               >
-                                Document
-                              </SortHeader>
-                            </th>
-                            <th className="px-4 py-4 text-left">
-                              <SortHeader
-                                active={sortKey === "status"}
-                                direction={sortDirection}
-                                onClick={() => toggleSort("status")}
-                              >
-                                Status
-                              </SortHeader>
-                            </th>
-                            <th className="px-4 py-4 text-left text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-[#8a776d]">
-                              Access
-                            </th>
-                            <th className="px-4 py-4 text-left">
-                              <SortHeader
-                                active={sortKey === "scanCount"}
-                                direction={sortDirection}
-                                onClick={() => toggleSort("scanCount")}
-                              >
-                                Scans
-                              </SortHeader>
-                            </th>
-                            <th className="px-4 py-4 text-left">
-                              <SortHeader
-                                active={sortKey === "createdAt"}
-                                direction={sortDirection}
-                                onClick={() => toggleSort("createdAt")}
-                              >
-                                Created
-                              </SortHeader>
-                            </th>
-                            <th className="px-4 py-4 text-left text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-[#8a776d]">
-                              Actions
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {paginatedDocuments.map((document) => (
-                            <tr
-                              className="border-b border-[#f0e7e0] last:border-b-0 hover:bg-[#fdfbf9]"
-                              key={document.publicId}
-                            >
-                              {/* Document */}
-                              <td className="px-6 py-5 align-top">
-                                <div className="flex items-start gap-4">
-                                  <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-[1rem] border border-[#f0e7e0] bg-[#fff7f3]">
-                                    <FileText size={18} strokeWidth={1.8} />
-                                    <span className="mt-1 text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-[#d34d3f]">
-                                      PDF
-                                    </span>
-                                  </div>
-                                  <div className="min-w-0">
-                                    <Link
-                                      className="block truncate text-sm font-semibold text-[#241915] hover:underline"
-                                      href={`/dashboard/documents/${document.publicId}`}
-                                    >
-                                      {document.title}
-                                    </Link>
-                                    <p className="mt-1 truncate text-sm text-[#7c6b63]">
-                                      {document.originalFilename}
-                                    </p>
-                                    <div className="mt-2 inline-flex items-center gap-1.5 text-xs text-[#8a776d]">
-                                      <document.workflow.icon size={13} strokeWidth={1.8} />
-                                      <span>{document.workflow.label}</span>
+                                {/* Document */}
+                                <td className="px-6 py-5 align-top">
+                                  <div className="flex items-start gap-4">
+                                    <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-[1rem] border border-[#f0e7e0] bg-[#fff7f3]">
+                                      <FileText size={18} strokeWidth={1.8} />
+                                      <span className="mt-1 text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-[#d34d3f]">
+                                        PDF
+                                      </span>
+                                    </div>
+                                    <div className="min-w-0">
+                                      <Link
+                                        className="block truncate text-sm font-semibold text-[#241915] hover:underline"
+                                        href={`/dashboard/documents/${document.publicId}`}
+                                      >
+                                        {document.title}
+                                      </Link>
+                                      <p className="mt-1 truncate text-sm text-[#7c6b63]">
+                                        {document.originalFilename}
+                                      </p>
+                                      <div className="mt-2 inline-flex items-center gap-1.5 text-xs text-[#8a776d]">
+                                        <document.workflow.icon
+                                          size={13}
+                                          strokeWidth={1.8}
+                                        />
+                                        <span>{document.workflow.label}</span>
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              </td>
-                              {/* Status */}
-                              <td className="px-4 py-5 align-top">
-                                <Badge
-                                  icon={document.lifecycle.icon}
-                                  label={document.lifecycle.label}
-                                  tone={document.lifecycle.tone}
-                                />
-                              </td>
-                              {/* Access */}
-                              <td className="px-4 py-5 align-top">
-                                <Badge
-                                  icon={document.access.icon}
-                                  label={document.access.label}
-                                  tone={document.access.tone}
-                                />
-                              </td>
-                              {/* Scans */}
-                              <td className="px-4 py-5 align-top">
-                                <div className="inline-flex items-center gap-2 text-sm text-[#4d3b34]">
-                                  <Eye size={16} strokeWidth={1.8} />
+                                </td>
+                                {/* Status */}
+                                <td className="px-4 py-5 align-top">
+                                  <Badge
+                                    icon={document.lifecycle.icon}
+                                    label={document.lifecycle.label}
+                                    tone={document.lifecycle.tone}
+                                  />
+                                </td>
+                                {/* Access */}
+                                <td className="px-4 py-5 align-top">
+                                  <Badge
+                                    icon={document.access.icon}
+                                    label={document.access.label}
+                                    tone={document.access.tone}
+                                  />
+                                </td>
+                                {/* Scans */}
+                                <td className="px-4 py-5 text-center align-top">
                                   <span className="font-medium text-[#241915]">
                                     {document.scanCount}
                                   </span>
-                                </div>
-                              </td>
-                              {/* Created */}
-                              <td className="px-4 py-5 align-top">
-                                <p className="text-sm font-medium text-[#241915]">
-                                  {formatDate(document.createdAt)}
-                                </p>
-                                <p className="mt-1 text-sm text-[#7c6b63]">
-                                  {formatTime(document.createdAt)}
-                                </p>
-                              </td>
-                              {/* Actions */}
-                              <td className="px-4 py-5 align-top">
-                                <div className="flex items-center gap-2">
-                                  <ActionIconLink
-                                    href={`/dashboard/documents/${document.publicId}`}
-                                    icon={Eye}
-                                    label={`View ${document.title}`}
-                                  />
-                                  <ActionIconLink
-                                    href={`/dashboard/documents/${document.publicId}`}
-                                    icon={Pencil}
-                                    label={`Edit ${document.title}`}
-                                  />
-                                  <ActionIconLink
-                                    href="/dashboard/audit"
-                                    icon={BarChart3}
-                                    label={`View analytics for ${document.title}`}
-                                  />
+                                </td>
+                                {/* Created */}
+                                <td className="px-4 py-5 align-top">
+                                  <p className="text-sm font-medium text-[#241915]">
+                                    {formatDate(document.createdAt)}
+                                  </p>
+                                  <p className="mt-1 text-sm text-[#7c6b63]">
+                                    {formatTime(document.createdAt)}
+                                  </p>
+                                </td>
+                                {/* Actions */}
+                                <td className="px-4 py-5 align-top">
                                   <DocumentActionsMenu document={document} />
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -948,7 +1005,7 @@ export function DocumentList({
                             </div>
                             <DocumentActionsMenu document={document} />
                           </div>
-                          <p className="mt-1.5 truncate text-xs text-[#9a8b84]">
+                          <p className="mt-1.5 truncate max-w-40 text-xs text-[#9a8b84]">
                             {document.originalFilename}
                           </p>
                         </div>
@@ -973,23 +1030,6 @@ export function DocumentList({
                           <span className="font-semibold text-[#241915]">
                             {document.scanCount}
                           </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <ActionIconLink
-                            href={`/dashboard/documents/${document.publicId}`}
-                            icon={Eye}
-                            label={`View ${document.title}`}
-                          />
-                          <ActionIconLink
-                            href={`/dashboard/documents/${document.publicId}`}
-                            icon={Pencil}
-                            label={`Edit ${document.title}`}
-                          />
-                          <ActionIconLink
-                            href="/dashboard/audit"
-                            icon={BarChart3}
-                            label={`View analytics for ${document.title}`}
-                          />
                         </div>
                       </div>
                     </div>
@@ -1066,7 +1106,9 @@ export function DocumentList({
                         className: "rounded-[1rem] px-4",
                       })}
                       disabled={currentPage >= totalPages}
-                      onClick={() => setPage((v) => Math.min(totalPages, v + 1))}
+                      onClick={() =>
+                        setPage((v) => Math.min(totalPages, v + 1))
+                      }
                       type="button"
                     >
                       Next
