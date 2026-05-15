@@ -1,42 +1,55 @@
 "use client";
 
-// Owns the protected owner document library presentation.
-// Provides client-side search, sorting, and pagination for owner-safe document metadata.
-// Must remain presentation-only; storage access and authorization stay server-owned.
+// Owns the premium owner-facing document index experience.
+// Provides client-side search, filtering, sorting, and pagination over safe owner document DTOs.
+// Must not fetch or expose anything beyond the server-provided document metadata.
 import Link from "next/link";
 import { useDeferredValue, useEffect, useState } from "react";
 import {
-  AiSearchIcon,
-  ArrowUpDownIcon,
-  CheckmarkBadge02Icon,
-  Edit01Icon,
-  File01Icon,
-  FileClockIcon,
-  FileCorruptIcon,
-  FileSyncIcon,
-  QrCodeIcon,
-  QrCodeScanIcon,
-  Shield01Icon,
-  ShieldBanIcon,
-  ViewIcon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+  ArrowUpDown,
+  BarChart3,
+  CalendarDays,
+  CheckCircle2,
+  Clock3,
+  Eye,
+  FileText,
+  Funnel,
+  LayoutGrid,
+  Menu,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  QrCode,
+  ScanQrCode,
+  Search,
+  Shield,
+  ShieldOff,
+  Table2,
+  TriangleAlert,
+  type LucideIcon,
+} from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { logout } from "@/features/auth/actions/auth-actions";
 import type { OwnerDocumentListItem } from "@/features/documents/server/get-owner-documents";
 import { cn } from "@/lib/utils";
 
-type SortKey = "title" | "createdAt" | "status" | "scanCount";
+type SortKey = "createdAt" | "title" | "scanCount" | "status";
 type SortDirection = "asc" | "desc";
+type ViewMode = "table" | "cards";
+type StatusFilter = "all" | "processed" | "pending" | "failed" | "disabled";
+type AccessFilter =
+  | "all"
+  | "public"
+  | "pin"
+  | "limited"
+  | "expires"
+  | "disabled";
 
 const PAGE_SIZE_OPTIONS = [5, 10, 20] as const;
 
-function formatDate(date: Date | string | null) {
-  if (!date) {
-    return "Not set";
-  }
-
+function formatDate(date: Date | string) {
   return new Date(date).toLocaleDateString("en", {
     month: "short",
     day: "numeric",
@@ -44,63 +57,108 @@ function formatDate(date: Date | string | null) {
   });
 }
 
-function toTimestamp(date: Date | string | null) {
-  if (!date) {
-    return 0;
-  }
-
-  return new Date(date).getTime();
+function formatTime(date: Date | string) {
+  return new Date(date).toLocaleTimeString("en", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
-const documentStatusStyles: Record<
-  string,
-  { className: string; icon: typeof File01Icon; label: string }
-> = {
-  DRAFT: {
-    className:
-      "border-[color:oklch(0.89_0.015_74)] bg-[color:oklch(0.97_0.008_80)] text-[color:oklch(0.42_0.024_39)]",
-    icon: File01Icon,
-    label: "Draft",
-  },
-  PROCESSING: {
-    className:
-      "border-[color:oklch(0.88_0.04_76)] bg-[color:oklch(0.96_0.025_81)] text-[color:oklch(0.47_0.05_67)]",
-    icon: FileSyncIcon,
-    label: "Processing",
-  },
-  PROCESSED: {
-    className:
-      "border-[color:oklch(0.88_0.03_145)] bg-[color:oklch(0.96_0.02_145)] text-[color:oklch(0.46_0.06_145)]",
-    icon: CheckmarkBadge02Icon,
-    label: "Processed",
-  },
-  FAILED: {
-    className:
-      "border-[color:oklch(0.88_0.035_28)] bg-[color:oklch(0.96_0.02_28)] text-[color:oklch(0.48_0.08_28)]",
-    icon: FileCorruptIcon,
-    label: "Failed",
-  },
-};
+function getLifecycleState(document: OwnerDocumentListItem) {
+  if (document.isRevoked || !document.isEnabled) {
+    return {
+      label: "Disabled",
+      value: "disabled" as const,
+      icon: ShieldOff,
+      tone: "border-red-200 bg-red-50 text-red-700",
+    };
+  }
 
-const accessStateStyles = {
-  Revoked: {
-    className:
-      "border-[color:oklch(0.88_0.035_28)] bg-[color:oklch(0.96_0.02_28)] text-[color:oklch(0.48_0.08_28)]",
-    icon: ShieldBanIcon,
-  },
-  Enabled: {
-    className:
-      "border-[color:oklch(0.88_0.03_145)] bg-[color:oklch(0.96_0.02_145)] text-[color:oklch(0.46_0.06_145)]",
-    icon: Shield01Icon,
-  },
-  Disabled: {
-    className:
-      "border-[color:oklch(0.89_0.015_74)] bg-[color:oklch(0.97_0.008_80)] text-[color:oklch(0.42_0.024_39)]",
-    icon: Shield01Icon,
-  },
-} as const;
+  if (document.status === "FAILED") {
+    return {
+      label: "Failed",
+      value: "failed" as const,
+      icon: TriangleAlert,
+      tone: "border-red-200 bg-red-50 text-red-700",
+    };
+  }
 
-function SortButton({
+  if (document.status === "PROCESSED") {
+    return {
+      label: "Processed",
+      value: "processed" as const,
+      icon: CheckCircle2,
+      tone: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    };
+  }
+
+  return {
+    label: "Pending",
+    value: "pending" as const,
+    icon: Clock3,
+    tone: "border-amber-200 bg-amber-50 text-amber-700",
+  };
+}
+
+function getAccessState(document: OwnerDocumentListItem) {
+  if (document.isRevoked || !document.isEnabled) {
+    return {
+      label: "Disabled",
+      value: "disabled" as const,
+      icon: ShieldOff,
+      tone: "border-red-200 bg-red-50 text-red-700",
+    };
+  }
+
+  if (document.requiresPin) {
+    return {
+      label: "PIN Protected",
+      value: "pin" as const,
+      icon: Shield,
+      tone: "border-amber-200 bg-amber-50 text-amber-700",
+    };
+  }
+
+  if (document.maxAccessCount !== null) {
+    return {
+      label: `Limited (${document.maxAccessCount})`,
+      value: "limited" as const,
+      icon: Shield,
+      tone: "border-sky-200 bg-sky-50 text-sky-700",
+    };
+  }
+
+  if (document.expiresAt) {
+    return {
+      label: `Expires ${new Date(document.expiresAt).toLocaleDateString("en", {
+        month: "short",
+        day: "numeric",
+      })}`,
+      value: "expires" as const,
+      icon: CalendarDays,
+      tone: "border-violet-200 bg-violet-50 text-violet-700",
+    };
+  }
+
+  return {
+    label: "Public",
+    value: "public" as const,
+    icon: Shield,
+    tone: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  };
+}
+
+function getWorkflowLabel(workflowType: OwnerDocumentListItem["workflowType"]) {
+  if (workflowType === "INSERT_NEW_QR") {
+    return { label: "Insert QR", icon: QrCode };
+  }
+  if (workflowType === "REPLACE_EXISTING_QR") {
+    return { label: "Replace QR", icon: ScanQrCode };
+  }
+  return { label: "Stored only", icon: FileText };
+}
+
+function SortHeader({
   active,
   children,
   direction,
@@ -114,21 +172,15 @@ function SortButton({
   return (
     <button
       className={cn(
-        "inline-flex items-center gap-2 rounded-lg px-2 py-1 text-left text-xs font-semibold uppercase tracking-[0.16em] transition hover:bg-[color:oklch(0.97_0.008_80)]",
-        active
-          ? "text-[color:oklch(0.29_0.038_37)]"
-          : "text-[color:oklch(0.49_0.024_39)]",
+        "inline-flex items-center gap-2 rounded-lg px-1 py-1 text-left text-[0.7rem] font-semibold uppercase tracking-[0.22em] transition",
+        active ? "text-[#3e2a23]" : "text-[#8a776d] hover:text-[#3e2a23]",
       )}
       onClick={onClick}
       type="button"
     >
       <span>{children}</span>
-      <HugeiconsIcon
-        className={cn(
-          "transition",
-          active && direction === "desc" ? "rotate-180" : "",
-        )}
-        icon={ArrowUpDownIcon}
+      <ArrowUpDown
+        className={cn(active && direction === "desc" ? "rotate-180" : "")}
         size={14}
         strokeWidth={1.8}
       />
@@ -141,20 +193,161 @@ function Badge({
   label,
   tone,
 }: {
-  icon: typeof File01Icon;
+  icon: LucideIcon;
   label: string;
   tone: string;
 }) {
+  const Icon = icon;
+
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-medium whitespace-nowrap",
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium whitespace-nowrap",
         tone,
       )}
     >
-      <HugeiconsIcon icon={icon} size={14} strokeWidth={1.8} />
+      <Icon size={13} strokeWidth={1.8} />
       {label}
     </span>
+  );
+}
+
+/** Desktop stat card — full layout with icon + label + large number */
+function StatCard({
+  icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: string;
+  tone: string;
+}) {
+  const Icon = icon;
+
+  return (
+    <div className="rounded-[1.35rem] border border-[#eadfd6] bg-white px-4 py-4 shadow-[0_14px_34px_-28px_rgba(96,62,34,0.22)]">
+      <div className="flex items-start justify-between gap-3">
+        <span
+          className={cn(
+            "inline-flex h-10 w-10 items-center justify-center rounded-2xl border",
+            tone,
+          )}
+        >
+          <Icon size={18} strokeWidth={1.8} />
+        </span>
+        <div className="min-w-0 text-right">
+          <p className="text-xs uppercase tracking-[0.18em] text-[#8a776d]">
+            {label}
+          </p>
+          <p className="mt-2 text-3xl leading-none text-[#241915]">{value}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Compact mobile stat tile — icon, number, label stacked */
+function MobileStatTile({
+  icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: string;
+  tone: string;
+}) {
+  const Icon = icon;
+
+  return (
+    <div className="flex flex-col items-start gap-1 rounded-[1.1rem] border border-[#eadfd6] bg-white px-3 py-3 shadow-[0_8px_20px_-14px_rgba(96,62,34,0.18)]">
+      <span
+        className={cn(
+          "inline-flex h-7 w-7 items-center justify-center rounded-xl border",
+          tone,
+        )}
+      >
+        <Icon size={14} strokeWidth={1.8} />
+      </span>
+      <p className="text-xl font-semibold leading-none text-[#241915]">
+        {value}
+      </p>
+      <p className="text-[0.65rem] uppercase tracking-[0.15em] text-[#8a776d]">
+        {label}
+      </p>
+    </div>
+  );
+}
+
+function ActionIconLink({
+  href,
+  icon,
+  label,
+}: {
+  href: string;
+  icon: LucideIcon;
+  label: string;
+}) {
+  const Icon = icon;
+
+  return (
+    <Link
+      aria-label={label}
+      className="inline-flex h-10 w-10 items-center justify-center rounded-[0.95rem] border border-[#eadfd6] bg-white text-[#6e5d54] shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] transition hover:border-[#dbc8bb] hover:text-[#241915]"
+      href={href}
+      title={label}
+    >
+      <Icon size={16} strokeWidth={1.8} />
+    </Link>
+  );
+}
+
+function DocumentActionsMenu({
+  document,
+}: {
+  document: OwnerDocumentListItem;
+}) {
+  return (
+    <details className="relative">
+      <summary className="flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-[0.95rem] border border-[#eadfd6] bg-white text-[#6e5d54] shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] transition hover:border-[#dbc8bb] hover:text-[#241915] [&::-webkit-details-marker]:hidden">
+        <MoreHorizontal size={16} strokeWidth={1.8} />
+      </summary>
+      <div className="absolute right-0 top-12 z-20 w-48 rounded-[1rem] border border-[#eadfd6] bg-white p-2 shadow-[0_20px_50px_-26px_rgba(84,53,28,0.22)]">
+        <Link
+          className="flex rounded-[0.8rem] px-3 py-2 text-sm text-[#4d3b34] transition hover:bg-[#f8f3ee]"
+          href={`/dashboard/documents/${document.publicId}`}
+        >
+          Open workspace
+        </Link>
+        <Link
+          className="flex rounded-[0.8rem] px-3 py-2 text-sm text-[#4d3b34] transition hover:bg-[#f8f3ee]"
+          href={`/api/dashboard/documents/${document.publicId}/original`}
+          rel="noreferrer"
+          target="_blank"
+        >
+          Open original PDF
+        </Link>
+        {document.status === "PROCESSED" ? (
+          <Link
+            className="flex rounded-[0.8rem] px-3 py-2 text-sm text-[#4d3b34] transition hover:bg-[#f8f3ee]"
+            href={`/api/dashboard/documents/${document.publicId}/processed`}
+            rel="noreferrer"
+            target="_blank"
+          >
+            Open processed PDF
+          </Link>
+        ) : null}
+        <Link
+          className="flex rounded-[0.8rem] px-3 py-2 text-sm text-[#4d3b34] transition hover:bg-[#f8f3ee]"
+          href="/dashboard/audit"
+        >
+          Audit log
+        </Link>
+      </div>
+    </details>
   );
 }
 
@@ -164,518 +357,727 @@ export function DocumentList({
   documents: OwnerDocumentListItem[];
 }) {
   const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [accessFilter, setAccessFilter] = useState<AccessFilter>("all");
   const [sortKey, setSortKey] = useState<SortKey>("createdAt");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [pageSize, setPageSize] =
     useState<(typeof PAGE_SIZE_OPTIONS)[number]>(10);
   const [page, setPage] = useState(1);
+  const [viewMode, setViewMode] = useState<ViewMode>("table");
   const deferredQuery = useDeferredValue(query);
 
   useEffect(() => {
     setPage(1);
-  }, [deferredQuery, sortKey, sortDirection, pageSize]);
+  }, [
+    deferredQuery,
+    statusFilter,
+    accessFilter,
+    sortKey,
+    sortDirection,
+    pageSize,
+  ]);
 
   const normalizedQuery = deferredQuery.trim().toLowerCase();
+  const enrichedDocuments = documents.map((document) => ({
+    ...document,
+    access: getAccessState(document),
+    lifecycle: getLifecycleState(document),
+    workflow: getWorkflowLabel(document.workflowType),
+  }));
 
-  const filteredDocuments = documents.filter((document) => {
-    if (!normalizedQuery) {
-      return true;
-    }
+  const totalDocuments = enrichedDocuments.length;
+  const processedCount = enrichedDocuments.filter(
+    (d) => d.lifecycle.value === "processed",
+  ).length;
+  const pendingCount = enrichedDocuments.filter(
+    (d) => d.lifecycle.value === "pending",
+  ).length;
+  const disabledCount = enrichedDocuments.filter(
+    (d) => d.access.value === "disabled",
+  ).length;
+  const totalScans = enrichedDocuments.reduce((sum, d) => sum + d.scanCount, 0);
 
-    const haystack = [
-      document.title,
-      document.originalFilename,
-      document.status,
-      document.qrMode,
-      document.isRevoked
-        ? "revoked"
-        : document.isEnabled
-          ? "enabled"
-          : "disabled",
-    ]
-      .join(" ")
-      .toLowerCase();
+  const filteredDocuments = enrichedDocuments.filter((document) => {
+    const matchesQuery =
+      normalizedQuery.length === 0
+        ? true
+        : [
+            document.title,
+            document.originalFilename,
+            document.lifecycle.label,
+            document.access.label,
+          ]
+            .join(" ")
+            .toLowerCase()
+            .includes(normalizedQuery);
 
-    return haystack.includes(normalizedQuery);
+    const matchesStatus =
+      statusFilter === "all" || document.lifecycle.value === statusFilter;
+    const matchesAccess =
+      accessFilter === "all" || document.access.value === accessFilter;
+
+    return matchesQuery && matchesStatus && matchesAccess;
   });
 
   const sortedDocuments = [...filteredDocuments].sort((left, right) => {
-    const directionFactor = sortDirection === "asc" ? 1 : -1;
-
+    const factor = sortDirection === "asc" ? 1 : -1;
     switch (sortKey) {
       case "title":
-        return directionFactor * left.title.localeCompare(right.title);
-      case "status":
-        return directionFactor * left.status.localeCompare(right.status);
+        return factor * left.title.localeCompare(right.title);
       case "scanCount":
-        return directionFactor * (left.scanCount - right.scanCount);
+        return factor * (left.scanCount - right.scanCount);
+      case "status":
+        return (
+          factor * left.lifecycle.label.localeCompare(right.lifecycle.label)
+        );
       case "createdAt":
       default:
         return (
-          directionFactor *
-          (toTimestamp(left.createdAt) - toTimestamp(right.createdAt))
+          factor *
+          (new Date(left.createdAt).getTime() -
+            new Date(right.createdAt).getTime())
         );
     }
   });
 
   const totalPages = Math.max(1, Math.ceil(sortedDocuments.length / pageSize));
   const currentPage = Math.min(page, totalPages);
+  const shouldShowPagination = sortedDocuments.length > pageSize;
   const paginatedDocuments = sortedDocuments.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize,
   );
 
+  const rangeStart =
+    sortedDocuments.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const rangeEnd = Math.min(currentPage * pageSize, sortedDocuments.length);
+
   function toggleSort(nextKey: SortKey) {
     if (sortKey === nextKey) {
-      setSortDirection((current) => (current === "asc" ? "desc" : "asc"));
+      setSortDirection((v) => (v === "asc" ? "desc" : "asc"));
       return;
     }
-
     setSortKey(nextKey);
     setSortDirection(nextKey === "title" ? "asc" : "desc");
   }
 
-  const filteredCount = filteredDocuments.length;
-  const rangeStart = filteredCount === 0 ? 0 : (currentPage - 1) * pageSize + 1;
-  const rangeEnd = Math.min(currentPage * pageSize, filteredCount);
+  function clearFilters() {
+    setQuery("");
+    setStatusFilter("all");
+    setAccessFilter("all");
+  }
+
+  const hasActiveFilters =
+    query.length > 0 || statusFilter !== "all" || accessFilter !== "all";
+
+  // How many page buttons to show (match screenshot: shows 1 2 3 with arrows)
+  const visiblePages = Array.from(
+    { length: Math.min(totalPages, 5) },
+    (_, i) => i + 1,
+  );
 
   return (
-    <Card>
-      <CardHeader className="space-y-6">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-          <div>
-            <p className="text-[0.68rem] uppercase tracking-[0.28em] text-[color:oklch(0.52_0.022_39)]">
-              Library
+    <div className="space-y-6">
+      {/* ── Mobile top bar ──────────────────────────────────────── */}
+      <div className="lg:hidden">
+        <div className="flex items-center justify-between gap-3">
+          <Link
+            aria-label="Open overview"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-[#eadfd6] bg-white text-[#5f4b42]"
+            href="/dashboard"
+          >
+            <Menu size={18} strokeWidth={1.8} />
+          </Link>
+          <div className="text-center">
+            <p className="text-[0.68rem] uppercase tracking-[0.28em] text-[#8a776d]">
+              Dashboard
             </p>
-            <h2 className="mt-2 text-3xl text-[color:oklch(0.245_0.026_41)]">
+            <h1 className="mt-0.5 text-xl font-semibold text-[#241915]">
               All documents
-            </h2>
-            <p className="mt-2 max-w-2xl text-sm text-[color:oklch(0.49_0.024_39)]">
-              Search records, inspect lifecycle state, and jump straight into a
-              document workspace from one protected owner-only table.
-            </p>
+            </h1>
           </div>
           <Link
-            className={buttonVariants({ variant: "primary", size: "sm" })}
+            aria-label="New document"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-[#743326] bg-[#743326] text-white shadow-[0_18px_30px_-22px_rgba(84,43,28,0.9)]"
             href="/dashboard/documents/new"
           >
-            New document
+            <Plus size={18} strokeWidth={1.8} />
           </Link>
         </div>
+      </div>
 
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_13rem_12rem]">
-          <label className="relative block">
-            <HugeiconsIcon
-              className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[color:oklch(0.55_0.022_40)]"
-              icon={AiSearchIcon}
-              size={18}
-              strokeWidth={1.8}
-            />
-            <input
-              className="h-11 w-full rounded-2xl border border-[color:oklch(0.89_0.015_74)] bg-white/88 pl-11 pr-4 text-sm text-zinc-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] outline-none transition placeholder:text-[color:oklch(0.57_0.02_41)] focus:border-[color:oklch(0.78_0.03_49)]"
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search title, filename, status, or access"
-              type="search"
-              value={query}
-            />
-          </label>
-
-          <div className="rounded-2xl border border-[color:oklch(0.89_0.015_74)] bg-[linear-gradient(180deg,rgba(255,255,255,0.82),rgba(246,241,233,0.64))] px-4 py-3 text-sm text-[color:oklch(0.47_0.023_38)]">
-            Showing{" "}
-            <span className="font-semibold text-zinc-950">{rangeStart}</span> -{" "}
-            <span className="font-semibold text-zinc-950">{rangeEnd}</span> of{" "}
-            <span className="font-semibold text-zinc-950">{filteredCount}</span>
-          </div>
-
-          <label className="flex items-center justify-between gap-3 rounded-2xl border border-[color:oklch(0.89_0.015_74)] bg-[linear-gradient(180deg,rgba(255,255,255,0.82),rgba(246,241,233,0.64))] px-4 py-3 text-sm text-[color:oklch(0.47_0.023_38)]">
-            <span>Rows per page</span>
-            <select
-              className="rounded-xl border border-[color:oklch(0.89_0.015_74)] bg-white px-3 py-2 text-sm text-zinc-950 outline-none"
-              onChange={(event) =>
-                setPageSize(
-                  Number(
-                    event.target.value,
-                  ) as (typeof PAGE_SIZE_OPTIONS)[number],
-                )
-              }
-              value={pageSize}
-            >
-              {PAGE_SIZE_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-      </CardHeader>
-
-      <CardContent>
-        {documents.length === 0 ? (
-          <div className="flex min-h-52 flex-col justify-center rounded-[1.8rem] border border-dashed border-[color:oklch(0.87_0.016_72)] bg-[linear-gradient(180deg,rgba(255,255,255,0.68),rgba(245,239,230,0.5))] p-6">
-            <p className="text-sm font-medium text-zinc-950">
-              No documents yet.
-            </p>
-            <p className="mt-2 max-w-md text-sm leading-6 text-[color:oklch(0.49_0.024_39)]">
-              Upload a PDF once, then return anytime to insert a QR or replace
-              an existing one from the shared document workspace.
-            </p>
-          </div>
-        ) : filteredCount === 0 ? (
-          <div className="flex min-h-40 flex-col justify-center rounded-[1.8rem] border border-dashed border-[color:oklch(0.87_0.016_72)] bg-[linear-gradient(180deg,rgba(255,255,255,0.68),rgba(245,239,230,0.5))] p-6">
-            <p className="text-sm font-medium text-zinc-950">
-              No documents match your search.
-            </p>
-            <p className="mt-2 text-sm leading-6 text-[color:oklch(0.49_0.024_39)]">
-              Try a different title, filename, status, or access term.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="hidden overflow-hidden rounded-[1.8rem] border border-[color:oklch(0.89_0.015_74)] xl:block">
-              <div className="overflow-x-auto">
-                <table className="min-w-full border-collapse">
-                  <thead className="bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(246,241,233,0.76))]">
-                    <tr className="border-b border-[color:oklch(0.9_0.012_74)]">
-                      <th className="px-6 py-4 text-left">
-                        <SortButton
-                          active={sortKey === "title"}
-                          direction={sortDirection}
-                          onClick={() => toggleSort("title")}
-                        >
-                          <span className="inline-flex items-center gap-2">
-                            <HugeiconsIcon
-                              icon={File01Icon}
-                              size={14}
-                              strokeWidth={1.8}
-                            />
-                            Document
-                          </span>
-                        </SortButton>
-                      </th>
-                      <th className="px-4 py-4 text-left">
-                        <SortButton
-                          active={sortKey === "status"}
-                          direction={sortDirection}
-                          onClick={() => toggleSort("status")}
-                        >
-                          <span className="inline-flex items-center gap-2">
-                            <HugeiconsIcon
-                              icon={FileSyncIcon}
-                              size={14}
-                              strokeWidth={1.8}
-                            />
-                            Status
-                          </span>
-                        </SortButton>
-                      </th>
-                      <th className="px-4 py-4 text-left text-xs font-semibold uppercase tracking-[0.16em] text-[color:oklch(0.49_0.024_39)]">
-                        <span className="inline-flex items-center gap-2">
-                          <HugeiconsIcon
-                            icon={Shield01Icon}
-                            size={14}
-                            strokeWidth={1.8}
-                          />
-                          Access
-                        </span>
-                      </th>
-                      <th className="px-4 py-4 text-left text-xs font-semibold uppercase tracking-[0.16em] text-[color:oklch(0.49_0.024_39)]">
-                        <HugeiconsIcon
-                          icon={ViewIcon}
-                          size={16}
-                          strokeWidth={1.8}
-                        />
-                      </th>
-                      <th className="px-4 py-4 text-left text-xs font-semibold uppercase tracking-[0.16em] text-[color:oklch(0.49_0.024_39)]">
-                        <HugeiconsIcon
-                          icon={QrCodeScanIcon}
-                          size={16}
-                          strokeWidth={1.8}
-                        />
-                      </th>
-                      <th className="px-4 py-4 text-left text-xs font-semibold uppercase tracking-[0.16em] text-[color:oklch(0.49_0.024_39)]">
-                        <HugeiconsIcon
-                          icon={CheckmarkBadge02Icon}
-                          size={16}
-                          strokeWidth={1.8}
-                        />
-                      </th>
-                      <th className="px-4 py-4 text-left">
-                        <SortButton
-                          active={sortKey === "createdAt"}
-                          direction={sortDirection}
-                          onClick={() => toggleSort("createdAt")}
-                        >
-                          <span className="inline-flex items-center gap-2">
-                            <HugeiconsIcon
-                              icon={FileClockIcon}
-                              size={14}
-                              strokeWidth={1.8}
-                            />
-                            Created
-                          </span>
-                        </SortButton>
-                      </th>
-                      <th className="w-16 px-4 py-4 text-right text-xs font-semibold uppercase tracking-[0.16em] text-[color:oklch(0.49_0.024_39)]">
-                        Edit
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginatedDocuments.map((document) => {
-                      const documentStatus =
-                        documentStatusStyles[document.status] ??
-                        documentStatusStyles.DRAFT;
-                      const accessState = document.isRevoked
-                        ? accessStateStyles.Revoked
-                        : document.isEnabled
-                          ? accessStateStyles.Enabled
-                          : accessStateStyles.Disabled;
-                      return (
-                        <tr
-                          className="border-b border-[color:oklch(0.92_0.01_74)] last:border-b-0 hover:bg-zinc-50"
-                          key={document.publicId}
-                        >
-                          <td className="px-6 py-5 align-top">
-                            <Link
-                              className="inline-flex max-w-[22rem] items-start gap-3 text-zinc-950"
-                              href={`/dashboard/documents/${document.publicId}`}
-                            >
-                              <span className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-[color:oklch(0.9_0.012_74)] bg-[linear-gradient(180deg,rgba(255,255,255,0.95),rgba(245,239,230,0.72))] text-[color:oklch(0.31_0.04_37)]">
-                                <HugeiconsIcon
-                                  icon={File01Icon}
-                                  size={18}
-                                  strokeWidth={1.8}
-                                />
-                              </span>
-                              <span className="min-w-0">
-                                <span className="block truncate text-sm font-semibold hover:underline">
-                                  {document.title}
-                                </span>
-                                <span className="mt-1 block truncate text-xs uppercase tracking-[0.16em] text-[color:oklch(0.5_0.024_38)]">
-                                  {document.originalFilename}
-                                </span>
-                              </span>
-                            </Link>
-                          </td>
-                          <td className="px-4 py-5 align-top">
-                            <Badge
-                              icon={documentStatus.icon}
-                              label={documentStatus.label}
-                              tone={documentStatus.className}
-                            />
-                          </td>
-                          <td className="px-4 py-5 align-top">
-                            <Badge
-                              icon={accessState.icon}
-                              label={
-                                document.isRevoked
-                                  ? "Revoked"
-                                  : document.isEnabled
-                                    ? "Enabled"
-                                    : "Disabled"
-                              }
-                              tone={accessState.className}
-                            />
-                          </td>
-                          <td className="px-4 py-5 align-top text-sm text-[color:oklch(0.46_0.023_39)]">
-                            <div className="inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-sm text-zinc-950">
-                              <HugeiconsIcon
-                                icon={ViewIcon}
-                                size={16}
-                                strokeWidth={1.8}
-                              />
-                              <span className="font-semibold">
-                                {document.scanCount}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-5 align-top text-sm text-[color:oklch(0.46_0.023_39)]">
-                            <div className="inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-sm text-zinc-950">
-                              <HugeiconsIcon
-                                icon={QrCodeScanIcon}
-                                size={16}
-                                strokeWidth={1.8}
-                              />
-                              <span className="font-semibold">
-                                {document.openCount}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-5 align-top text-sm text-[color:oklch(0.46_0.023_39)]">
-                            <div className="inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-sm text-zinc-950">
-                              <HugeiconsIcon
-                                icon={CheckmarkBadge02Icon}
-                                size={16}
-                                strokeWidth={1.8}
-                              />
-                              <span className="font-semibold">
-                                {document.downloadCount}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-5 align-top text-sm text-[color:oklch(0.46_0.023_39)]">
-                            {formatDate(document.createdAt)}
-                          </td>
-                          <td className="px-4 py-5 align-top text-right">
-                            <Link
-                              aria-label={`Manage ${document.title}`}
-                              className={buttonVariants({
-                                variant: "secondary",
-                                size: "sm",
-                                className: "h-10 w-10 rounded-2xl px-0",
-                              })}
-                              href={`/dashboard/documents/${document.publicId}`}
-                              title={`Manage ${document.title}`}
-                            >
-                              <HugeiconsIcon
-                                icon={Edit01Icon}
-                                size={18}
-                                strokeWidth={1.8}
-                              />
-                            </Link>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+      <Card className="overflow-hidden rounded-[2rem] border-[#eadfd6] bg-white shadow-[0_28px_70px_-42px_rgba(84,53,28,0.22)]">
+        <CardContent className="p-0">
+          {/* ── Desktop header ──────────────────────────────────── */}
+          <div className="hidden items-start justify-between gap-4 border-b border-[#eadfd6] px-7 py-7 lg:flex">
+            <div>
+              <p className="text-[0.72rem] uppercase tracking-[0.28em] text-[#8a776d]">
+                Dashboard
+              </p>
+              <h1 className="mt-2 text-4xl leading-none text-[#241915]">
+                All documents
+              </h1>
+              <p className="mt-3 max-w-3xl text-sm leading-6 text-[#7c6b63]">
+                Review every PDF record, public access status, and scan outcome
+                from one protected owner-only view.
+              </p>
             </div>
+            <div className="flex items-center gap-3">
+              <Link
+                className={buttonVariants({
+                  variant: "primary",
+                  className: "rounded-[1rem] px-5",
+                })}
+                href="/dashboard/documents/new"
+              >
+                <Plus size={18} strokeWidth={1.8} />
+                New Document
+              </Link>
+              <form action={logout}>
+                <button
+                  className={buttonVariants({
+                    variant: "secondary",
+                    className: "rounded-[1rem] px-5",
+                  })}
+                  type="submit"
+                >
+                  Sign out
+                </button>
+              </form>
+            </div>
+          </div>
 
-            <div className="grid gap-4 xl:hidden">
-              {paginatedDocuments.map((document) => {
-                const documentStatus =
-                  documentStatusStyles[document.status] ??
-                  documentStatusStyles.DRAFT;
-                const accessState = document.isRevoked
-                  ? accessStateStyles.Revoked
-                  : document.isEnabled
-                    ? accessStateStyles.Enabled
-                    : accessStateStyles.Disabled;
+          <div className="space-y-5 px-4 py-5 lg:px-7 lg:py-7">
+            {/* ── Stats ───────────────────────────────────────── */}
+            {/* Desktop: 5-col row */}
+            <section className="hidden gap-3 xl:grid xl:grid-cols-5">
+              <StatCard
+                icon={FileText}
+                label="Total documents"
+                tone="border-[#eadfd6] bg-[#f8f3ee] text-[#743326]"
+                value={totalDocuments.toLocaleString("en")}
+              />
+              <StatCard
+                icon={CheckCircle2}
+                label="Processed"
+                tone="border-emerald-100 bg-emerald-50 text-emerald-700"
+                value={processedCount.toLocaleString("en")}
+              />
+              <StatCard
+                icon={Clock3}
+                label="Pending"
+                tone="border-amber-100 bg-amber-50 text-amber-700"
+                value={pendingCount.toLocaleString("en")}
+              />
+              <StatCard
+                icon={ShieldOff}
+                label="Disabled"
+                tone="border-red-100 bg-red-50 text-red-700"
+                value={disabledCount.toLocaleString("en")}
+              />
+              <StatCard
+                icon={Eye}
+                label="Total scans"
+                tone="border-[#eadfd6] bg-[#f7f4f1] text-[#6e5d54]"
+                value={totalScans.toLocaleString("en")}
+              />
+            </section>
+            {/* Tablet: 2-col grid */}
+            <section className="grid gap-3 sm:grid-cols-2 xl:hidden">
+              <StatCard
+                icon={FileText}
+                label="Total documents"
+                tone="border-[#eadfd6] bg-[#f8f3ee] text-[#743326]"
+                value={totalDocuments.toLocaleString("en")}
+              />
+              <StatCard
+                icon={CheckCircle2}
+                label="Processed"
+                tone="border-emerald-100 bg-emerald-50 text-emerald-700"
+                value={processedCount.toLocaleString("en")}
+              />
+              <StatCard
+                icon={Clock3}
+                label="Pending"
+                tone="border-amber-100 bg-amber-50 text-amber-700"
+                value={pendingCount.toLocaleString("en")}
+              />
+              <StatCard
+                icon={ShieldOff}
+                label="Disabled"
+                tone="border-red-100 bg-red-50 text-red-700"
+                value={disabledCount.toLocaleString("en")}
+              />
+              <StatCard
+                icon={Eye}
+                label="Total scans"
+                tone="border-[#eadfd6] bg-[#f7f4f1] text-[#6e5d54]"
+                value={totalScans.toLocaleString("en")}
+              />
+            </section>
+            {/* Mobile: compact 3-col tile grid (matches screenshot) */}
+            <section className="grid grid-cols-3 gap-2 sm:hidden">
+              <MobileStatTile
+                icon={FileText}
+                label="Total"
+                tone="border-[#eadfd6] bg-[#f8f3ee] text-[#743326]"
+                value={totalDocuments.toLocaleString("en")}
+              />
+              <MobileStatTile
+                icon={CheckCircle2}
+                label="Processed"
+                tone="border-emerald-100 bg-emerald-50 text-emerald-700"
+                value={processedCount.toLocaleString("en")}
+              />
+              <MobileStatTile
+                icon={Clock3}
+                label="Pending"
+                tone="border-amber-100 bg-amber-50 text-amber-700"
+                value={pendingCount.toLocaleString("en")}
+              />
+              <MobileStatTile
+                icon={ShieldOff}
+                label="Disabled"
+                tone="border-red-100 bg-red-50 text-red-700"
+                value={disabledCount.toLocaleString("en")}
+              />
+              <MobileStatTile
+                icon={Eye}
+                label="Scans"
+                tone="border-[#eadfd6] bg-[#f7f4f1] text-[#6e5d54]"
+                value={totalScans.toLocaleString("en")}
+              />
+            </section>
 
-                return (
-                  <div
-                    className="rounded-[1.6rem] border border-[color:oklch(0.89_0.015_74)] bg-white p-5"
-                    key={document.publicId}
+            {/* ── Search / Filter bar ─────────────────────────── */}
+            <section className="rounded-[1.6rem] border border-[#eadfd6] bg-[#fcfaf8] p-3 sm:p-4">
+              <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_11rem_11rem_auto_auto]">
+                <label className="relative block">
+                  <Search
+                    className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#8a776d]"
+                    size={18}
+                    strokeWidth={1.8}
+                  />
+                  <input
+                    className="h-12 w-full rounded-[1rem] border border-[#eadfd6] bg-white pl-11 pr-4 text-sm text-[#241915] outline-none transition placeholder:text-[#9a8b84] focus:border-[#d7c3b6]"
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search documents by title or filename..."
+                    type="search"
+                    value={query}
+                  />
+                </label>
+
+                <select
+                  className="h-12 rounded-[1rem] border border-[#eadfd6] bg-white px-4 text-sm text-[#3e2a23] outline-none"
+                  onChange={(e) =>
+                    setStatusFilter(e.target.value as StatusFilter)
+                  }
+                  value={statusFilter}
+                >
+                  <option value="all">All status</option>
+                  <option value="processed">Processed</option>
+                  <option value="pending">Pending</option>
+                  <option value="failed">Failed</option>
+                  <option value="disabled">Disabled</option>
+                </select>
+
+                <select
+                  className="h-12 rounded-[1rem] border border-[#eadfd6] bg-white px-4 text-sm text-[#3e2a23] outline-none"
+                  onChange={(e) =>
+                    setAccessFilter(e.target.value as AccessFilter)
+                  }
+                  value={accessFilter}
+                >
+                  <option value="all">All access</option>
+                  <option value="public">Public</option>
+                  <option value="pin">PIN Protected</option>
+                  <option value="limited">Limited</option>
+                  <option value="expires">Expires</option>
+                  <option value="disabled">Disabled</option>
+                </select>
+
+                <button
+                  className={buttonVariants({
+                    variant: "secondary",
+                    className: "h-12 rounded-[1rem] px-4",
+                  })}
+                  onClick={clearFilters}
+                  type="button"
+                >
+                  <Funnel size={18} strokeWidth={1.8} />
+                  {hasActiveFilters ? "Clear filters" : "Filters"}
+                </button>
+
+                {/* View mode toggle — desktop only (matches screenshot) */}
+                <div className="hidden xl:grid h-12 grid-cols-2 gap-2 rounded-[1rem] border border-[#eadfd6] bg-white p-1">
+                  <button
+                    aria-label="Table view"
+                    className={cn(
+                      "inline-flex items-center justify-center rounded-[0.8rem] transition",
+                      viewMode === "table"
+                        ? "bg-[#f8f3ee] text-[#241915]"
+                        : "text-[#8a776d]",
+                    )}
+                    onClick={() => setViewMode("table")}
+                    type="button"
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <Link
-                          className="block truncate text-base font-semibold text-zinc-950 hover:underline"
-                          href={`/dashboard/documents/${document.publicId}`}
-                        >
-                          {document.title}
-                        </Link>
-                        <p className="mt-1 truncate text-xs uppercase tracking-[0.16em] text-[color:oklch(0.5_0.024_38)]">
-                          {document.originalFilename}
-                        </p>
-                      </div>
-                      <Link
-                        aria-label={`Manage ${document.title}`}
-                        className={buttonVariants({
-                          variant: "secondary",
-                          size: "sm",
-                          className: "h-10 w-10 shrink-0 rounded-2xl px-0",
-                        })}
-                        href={`/dashboard/documents/${document.publicId}`}
-                        title={`Manage ${document.title}`}
-                      >
-                        <HugeiconsIcon
-                          icon={Edit01Icon}
-                          size={18}
-                          strokeWidth={1.8}
-                        />
-                      </Link>
-                    </div>
+                    <Table2 size={18} strokeWidth={1.8} />
+                  </button>
+                  <button
+                    aria-label="Cards view"
+                    className={cn(
+                      "inline-flex items-center justify-center rounded-[0.8rem] transition",
+                      viewMode === "cards"
+                        ? "bg-[#f8f3ee] text-[#241915]"
+                        : "text-[#8a776d]",
+                    )}
+                    onClick={() => setViewMode("cards")}
+                    type="button"
+                  >
+                    <LayoutGrid size={18} strokeWidth={1.8} />
+                  </button>
+                </div>
+              </div>
+            </section>
 
-                    <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
-                      <div className="inline-flex items-center gap-2 rounded-2xl border border-[color:oklch(0.89_0.015_74)] px-3 py-2 text-[color:oklch(0.46_0.023_39)]">
-                        <HugeiconsIcon
-                          icon={ViewIcon}
-                          size={16}
-                          strokeWidth={1.8}
-                        />
-                        <span className="font-semibold text-zinc-950">
-                          {document.scanCount}
-                        </span>
-                      </div>
-                      <div className="inline-flex items-center gap-2 rounded-2xl border border-[color:oklch(0.89_0.015_74)] px-3 py-2 text-[color:oklch(0.46_0.023_39)]">
-                        <HugeiconsIcon
-                          icon={QrCodeScanIcon}
-                          size={16}
-                          strokeWidth={1.8}
-                        />
-                        <span className="font-semibold text-zinc-950">
-                          {document.openCount}
-                        </span>
-                      </div>
-                      <div className="inline-flex items-center gap-2 rounded-2xl border border-[color:oklch(0.89_0.015_74)] px-3 py-2 text-[color:oklch(0.46_0.023_39)]">
-                        <HugeiconsIcon
-                          icon={CheckmarkBadge02Icon}
-                          size={16}
-                          strokeWidth={1.8}
-                        />
-                        <span className="font-semibold text-zinc-950">
-                          {document.downloadCount}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 text-sm text-[color:oklch(0.46_0.023_39)]">
-                      <p>
-                        <span className="font-semibold text-zinc-950">
-                          Created:
-                        </span>{" "}
-                        {formatDate(document.createdAt)}
-                      </p>
+            {/* ── Empty states ────────────────────────────────── */}
+            {documents.length === 0 ? (
+              <div className="rounded-[1.8rem] border border-dashed border-[#eadfd6] bg-[#fcfaf8] px-6 py-10 text-center">
+                <p className="text-lg text-[#241915]">No documents yet.</p>
+                <p className="mt-2 text-sm text-[#7c6b63]">
+                  Upload your first PDF to start storing documents and managing
+                  QR workflows.
+                </p>
+              </div>
+            ) : filteredDocuments.length === 0 ? (
+              <div className="rounded-[1.8rem] border border-dashed border-[#eadfd6] bg-[#fcfaf8] px-6 py-10 text-center">
+                <p className="text-lg text-[#241915]">No matching documents.</p>
+                <p className="mt-2 text-sm text-[#7c6b63]">
+                  Adjust the search term or filters to see more results.
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* ── Desktop table (lg+, table mode) ────────── */}
+                {viewMode === "table" && (
+                  <div className="hidden lg:block">
+                    <div className="overflow-hidden rounded-[1.6rem] border border-[#eadfd6] bg-white">
+                      <table className="w-full table-fixed">
+                        <colgroup>
+                          <col className="w-[32%]" />
+                          <col className="w-[13%]" />
+                          <col className="w-[18%]" />
+                          <col className="w-[9%]" />
+                          <col className="w-[14%]" />
+                          <col className="w-[14%]" />
+                        </colgroup>
+                        <thead className="border-b border-[#eadfd6] bg-[#fcfaf8]">
+                          <tr>
+                            <th className="px-6 py-4 text-left">
+                              <SortHeader
+                                active={sortKey === "title"}
+                                direction={sortDirection}
+                                onClick={() => toggleSort("title")}
+                              >
+                                Document
+                              </SortHeader>
+                            </th>
+                            <th className="px-4 py-4 text-left">
+                              <SortHeader
+                                active={sortKey === "status"}
+                                direction={sortDirection}
+                                onClick={() => toggleSort("status")}
+                              >
+                                Status
+                              </SortHeader>
+                            </th>
+                            <th className="px-4 py-4 text-left text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-[#8a776d]">
+                              Access
+                            </th>
+                            <th className="px-4 py-4 text-left">
+                              <SortHeader
+                                active={sortKey === "scanCount"}
+                                direction={sortDirection}
+                                onClick={() => toggleSort("scanCount")}
+                              >
+                                Scans
+                              </SortHeader>
+                            </th>
+                            <th className="px-4 py-4 text-left">
+                              <SortHeader
+                                active={sortKey === "createdAt"}
+                                direction={sortDirection}
+                                onClick={() => toggleSort("createdAt")}
+                              >
+                                Created
+                              </SortHeader>
+                            </th>
+                            <th className="px-4 py-4 text-left text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-[#8a776d]">
+                              Actions
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {paginatedDocuments.map((document) => (
+                            <tr
+                              className="border-b border-[#f0e7e0] last:border-b-0 hover:bg-[#fdfbf9]"
+                              key={document.publicId}
+                            >
+                              {/* Document */}
+                              <td className="px-6 py-5 align-top">
+                                <div className="flex items-start gap-4">
+                                  <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-[1rem] border border-[#f0e7e0] bg-[#fff7f3]">
+                                    <FileText size={18} strokeWidth={1.8} />
+                                    <span className="mt-1 text-[0.58rem] font-semibold uppercase tracking-[0.18em] text-[#d34d3f]">
+                                      PDF
+                                    </span>
+                                  </div>
+                                  <div className="min-w-0">
+                                    <Link
+                                      className="block truncate text-sm font-semibold text-[#241915] hover:underline"
+                                      href={`/dashboard/documents/${document.publicId}`}
+                                    >
+                                      {document.title}
+                                    </Link>
+                                    <p className="mt-1 truncate text-sm text-[#7c6b63]">
+                                      {document.originalFilename}
+                                    </p>
+                                    <div className="mt-2 inline-flex items-center gap-1.5 text-xs text-[#8a776d]">
+                                      <document.workflow.icon size={13} strokeWidth={1.8} />
+                                      <span>{document.workflow.label}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+                              {/* Status */}
+                              <td className="px-4 py-5 align-top">
+                                <Badge
+                                  icon={document.lifecycle.icon}
+                                  label={document.lifecycle.label}
+                                  tone={document.lifecycle.tone}
+                                />
+                              </td>
+                              {/* Access */}
+                              <td className="px-4 py-5 align-top">
+                                <Badge
+                                  icon={document.access.icon}
+                                  label={document.access.label}
+                                  tone={document.access.tone}
+                                />
+                              </td>
+                              {/* Scans */}
+                              <td className="px-4 py-5 align-top">
+                                <div className="inline-flex items-center gap-2 text-sm text-[#4d3b34]">
+                                  <Eye size={16} strokeWidth={1.8} />
+                                  <span className="font-medium text-[#241915]">
+                                    {document.scanCount}
+                                  </span>
+                                </div>
+                              </td>
+                              {/* Created */}
+                              <td className="px-4 py-5 align-top">
+                                <p className="text-sm font-medium text-[#241915]">
+                                  {formatDate(document.createdAt)}
+                                </p>
+                                <p className="mt-1 text-sm text-[#7c6b63]">
+                                  {formatTime(document.createdAt)}
+                                </p>
+                              </td>
+                              {/* Actions */}
+                              <td className="px-4 py-5 align-top">
+                                <div className="flex items-center gap-2">
+                                  <ActionIconLink
+                                    href={`/dashboard/documents/${document.publicId}`}
+                                    icon={Eye}
+                                    label={`View ${document.title}`}
+                                  />
+                                  <ActionIconLink
+                                    href={`/dashboard/documents/${document.publicId}`}
+                                    icon={Pencil}
+                                    label={`Edit ${document.title}`}
+                                  />
+                                  <ActionIconLink
+                                    href="/dashboard/audit"
+                                    icon={BarChart3}
+                                    label={`View analytics for ${document.title}`}
+                                  />
+                                  <DocumentActionsMenu document={document} />
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
-                );
-              })}
-            </div>
+                )}
 
-            <div className="flex flex-col gap-3 border-t border-[color:oklch(0.9_0.012_74)] pt-4 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-[color:oklch(0.49_0.024_39)]">
-                Page{" "}
-                <span className="font-semibold text-zinc-950">
-                  {currentPage}
-                </span>{" "}
-                of{" "}
-                <span className="font-semibold text-zinc-950">
-                  {totalPages}
-                </span>
-              </p>
-              <div className="flex items-center gap-2">
-                <button
-                  className={buttonVariants({
-                    variant: "secondary",
-                    size: "sm",
-                  })}
-                  disabled={currentPage <= 1}
-                  onClick={() => setPage((value) => Math.max(1, value - 1))}
-                  type="button"
+                {/* ── Mobile / cards view ──────────────────────── */}
+                <div
+                  className={cn(
+                    viewMode === "table" ? "grid lg:hidden" : "grid",
+                    "gap-3",
+                  )}
                 >
-                  Previous
-                </button>
-                <button
-                  className={buttonVariants({
-                    variant: "secondary",
-                    size: "sm",
-                  })}
-                  disabled={currentPage >= totalPages}
-                  onClick={() =>
-                    setPage((value) => Math.min(totalPages, value + 1))
-                  }
-                  type="button"
-                >
-                  Next
-                </button>
+                  {paginatedDocuments.map((document) => (
+                    <div
+                      className="rounded-[1.6rem] border border-[#eadfd6] bg-white p-4 shadow-[0_14px_34px_-28px_rgba(96,62,34,0.16)]"
+                      key={document.publicId}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-[0.9rem] border border-[#f0e7e0] bg-[#fff7f3]">
+                          <FileText size={16} strokeWidth={1.8} />
+                          <span className="mt-0.5 text-[0.55rem] font-semibold uppercase tracking-[0.15em] text-[#d34d3f]">
+                            PDF
+                          </span>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <Link
+                                className="block truncate text-sm font-semibold text-[#241915] hover:underline"
+                                href={`/dashboard/documents/${document.publicId}`}
+                              >
+                                {document.title}
+                              </Link>
+                              <p className="mt-0.5 text-xs text-[#8a776d]">
+                                {formatDate(document.createdAt)} &bull;{" "}
+                                {formatTime(document.createdAt)}
+                              </p>
+                            </div>
+                            <DocumentActionsMenu document={document} />
+                          </div>
+                          <p className="mt-1.5 truncate text-xs text-[#9a8b84]">
+                            {document.originalFilename}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Badge
+                          icon={document.lifecycle.icon}
+                          label={document.lifecycle.label}
+                          tone={document.lifecycle.tone}
+                        />
+                        <Badge
+                          icon={document.access.icon}
+                          label={document.access.label}
+                          tone={document.access.tone}
+                        />
+                      </div>
+
+                      <div className="mt-3 flex items-center justify-between border-t border-[#f0e7e0] pt-3">
+                        <div className="inline-flex items-center gap-1.5 text-sm text-[#4d3b34]">
+                          <Eye size={15} strokeWidth={1.8} />
+                          <span className="font-semibold text-[#241915]">
+                            {document.scanCount}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <ActionIconLink
+                            href={`/dashboard/documents/${document.publicId}`}
+                            icon={Eye}
+                            label={`View ${document.title}`}
+                          />
+                          <ActionIconLink
+                            href={`/dashboard/documents/${document.publicId}`}
+                            icon={Pencil}
+                            label={`Edit ${document.title}`}
+                          />
+                          <ActionIconLink
+                            href="/dashboard/audit"
+                            icon={BarChart3}
+                            label={`View analytics for ${document.title}`}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* ── Pagination ──────────────────────────────────── */}
+            {shouldShowPagination ? (
+              <div className="flex flex-col gap-4 border-t border-[#eadfd6] pt-4 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-[#7c6b63]">
+                  Showing {rangeStart} to {rangeEnd} of {sortedDocuments.length}{" "}
+                  results
+                </p>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <label className="flex items-center gap-3 rounded-[1rem] border border-[#eadfd6] bg-white px-4 py-2 text-sm text-[#6e5d54]">
+                    <span>Rows per page</span>
+                    <select
+                      className="bg-transparent text-[#241915] outline-none"
+                      onChange={(e) =>
+                        setPageSize(
+                          Number(
+                            e.target.value,
+                          ) as (typeof PAGE_SIZE_OPTIONS)[number],
+                        )
+                      }
+                      value={pageSize}
+                    >
+                      {PAGE_SIZE_OPTIONS.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      className={buttonVariants({
+                        variant: "secondary",
+                        size: "sm",
+                        className: "rounded-[1rem] px-4",
+                      })}
+                      disabled={currentPage <= 1}
+                      onClick={() => setPage((v) => Math.max(1, v - 1))}
+                      type="button"
+                    >
+                      Previous
+                    </button>
+
+                    <div className="flex items-center gap-1.5">
+                      {visiblePages.map((pageNumber) => (
+                        <button
+                          className={cn(
+                            "inline-flex h-10 w-10 items-center justify-center rounded-[0.95rem] border text-sm font-medium transition",
+                            pageNumber === currentPage
+                              ? "border-[#743326] bg-[#743326] text-white shadow-[0_8px_20px_-10px_rgba(116,51,38,0.55)]"
+                              : "border-[#eadfd6] bg-white text-[#5f4b42] hover:border-[#d4c0b2]",
+                          )}
+                          key={pageNumber}
+                          onClick={() => setPage(pageNumber)}
+                          type="button"
+                        >
+                          {pageNumber}
+                        </button>
+                      ))}
+                    </div>
+
+                    <button
+                      className={buttonVariants({
+                        variant: "secondary",
+                        size: "sm",
+                        className: "rounded-[1rem] px-4",
+                      })}
+                      disabled={currentPage >= totalPages}
+                      onClick={() => setPage((v) => Math.min(totalPages, v + 1))}
+                      type="button"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
+            ) : null}
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

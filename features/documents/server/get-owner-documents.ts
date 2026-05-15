@@ -18,6 +18,8 @@ export type OwnerDocumentListItem = {
   createdAt: Date;
   processedAt: Date | null;
   expiresAt: Date | null;
+  maxAccessCount: number | null;
+  requiresPin: boolean;
   scanCount: number;
   openCount: number;
   downloadCount: number;
@@ -48,6 +50,8 @@ export async function getOwnerDocuments(): Promise<OwnerDocumentListItem[]> {
       createdAt: true,
       processedAt: true,
       expiresAt: true,
+      maxAccessCount: true,
+      requiresPin: true,
       scanCount: true,
       openCount: true,
       downloadCount: true,

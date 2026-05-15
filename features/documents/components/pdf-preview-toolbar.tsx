@@ -2,12 +2,11 @@
 // Keeps the viewer component focused on PDF.js rendering and detection state.
 // Must remain stateless so later QR overlay tools can reuse the same controls.
 import {
-  ArrowLeft01Icon,
-  ArrowRight01Icon,
-  ZoomInAreaIcon,
-  ZoomOutAreaIcon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+  ArrowLeft,
+  ArrowRight,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 
@@ -61,7 +60,7 @@ export function PdfPreviewToolbar({
           onClick={onPreviousPage}
           type="button"
         >
-          <HugeiconsIcon icon={ArrowLeft01Icon} size={16} strokeWidth={1.8} />
+          <ArrowLeft size={16} strokeWidth={1.8} />
           Previous
         </button>
         <button
@@ -71,7 +70,7 @@ export function PdfPreviewToolbar({
           type="button"
         >
           Next
-          <HugeiconsIcon icon={ArrowRight01Icon} size={16} strokeWidth={1.8} />
+          <ArrowRight size={16} strokeWidth={1.8} />
         </button>
         <button
           className={buttonVariants({ variant: "secondary", size: "sm" })}
@@ -79,7 +78,7 @@ export function PdfPreviewToolbar({
           onClick={onZoomOut}
           type="button"
         >
-          <HugeiconsIcon icon={ZoomOutAreaIcon} size={16} strokeWidth={1.8} />
+          <ZoomOut size={16} strokeWidth={1.8} />
           Zoom out
         </button>
         <button
@@ -88,7 +87,7 @@ export function PdfPreviewToolbar({
           onClick={onZoomIn}
           type="button"
         >
-          <HugeiconsIcon icon={ZoomInAreaIcon} size={16} strokeWidth={1.8} />
+          <ZoomIn size={16} strokeWidth={1.8} />
           Zoom in
         </button>
         <span className="inline-flex h-9 items-center rounded-xl border border-[color:oklch(0.89_0.015_74)] bg-white/70 px-3 text-sm text-[color:oklch(0.49_0.024_39)]">

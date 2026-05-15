@@ -4,9 +4,8 @@
 // Provides immediate browser validation while the server remains authoritative.
 // Must not display storage paths, signed URLs, or raw backend errors.
 import { useActionState, useEffect, useRef, useState } from "react";
-import { FileUploadIcon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
 import Link from "next/link";
+import { Upload } from "lucide-react";
 
 import {
   createDocument,
@@ -160,7 +159,7 @@ export function PdfUploadForm({
         disabled={pending || Boolean(clientFileError)}
         type="submit"
       >
-        <HugeiconsIcon icon={FileUploadIcon} size={18} strokeWidth={1.8} />
+        <Upload size={18} strokeWidth={1.8} />
         {pending ? "Uploading..." : "Upload PDF"}
       </button>
     </form>

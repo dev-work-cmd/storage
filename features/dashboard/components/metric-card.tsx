@@ -1,18 +1,19 @@
 // Owns the compact dashboard metric presentation.
 // Keeps summary cards visually consistent and scan-friendly on mobile.
 // Must stay presentation-only so the page controls data loading.
-import type { IconSvgElement } from "@hugeicons/react";
-import { HugeiconsIcon } from "@hugeicons/react";
+import type { LucideIcon } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
 
 type MetricCardProps = {
   label: string;
   value: string | number;
-  icon: IconSvgElement;
+  icon: LucideIcon;
 };
 
 export function MetricCard({ label, value, icon }: MetricCardProps) {
+  const Icon = icon;
+
   return (
     <Card className="overflow-hidden">
       <CardContent className="relative flex items-start justify-between gap-4">
@@ -26,7 +27,7 @@ export function MetricCard({ label, value, icon }: MetricCardProps) {
           </p>
         </div>
         <div className="flex size-11 items-center justify-center rounded-2xl border border-white/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(241,231,218,0.8))] text-[color:oklch(0.4_0.045_35)] shadow-[0_14px_32px_-22px_rgba(98,67,40,0.75)]">
-          <HugeiconsIcon icon={icon} size={18} strokeWidth={1.8} />
+          <Icon size={18} strokeWidth={1.8} />
         </div>
       </CardContent>
     </Card>

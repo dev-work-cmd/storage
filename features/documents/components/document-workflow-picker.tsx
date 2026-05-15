@@ -4,12 +4,8 @@
 // Switches a document into replacement or insertion mode from the shared detail page.
 // Must keep the choice explicit so users can return later and re-edit the original PDF.
 import { startTransition, useEffect, useState } from "react";
-import {
-  QrCodeIcon,
-  QrCodeScanIcon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
 import { useRouter } from "next/navigation";
+import { QrCode, ScanQrCode, type LucideIcon } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { selectDocumentWorkflow } from "@/features/documents/actions/document-management-actions";
@@ -21,7 +17,7 @@ const WORKFLOW_OPTIONS: Record<
   {
     title: string;
     description: string;
-    icon: typeof QrCodeIcon;
+    icon: LucideIcon;
     actionLabel: string;
   }
 > = {
@@ -29,14 +25,14 @@ const WORKFLOW_OPTIONS: Record<
     title: "Replace existing QR",
     description:
       "Use QR detection or manual adjustment to replace the QR that is already printed on this document.",
-    icon: QrCodeScanIcon,
+    icon: ScanQrCode,
     actionLabel: "Replace QR",
   },
   INSERT_NEW_QR: {
     title: "Insert new QR",
     description:
       "Choose a fresh rectangle on the original PDF and place a new app-hosted QR into that area.",
-    icon: QrCodeIcon,
+    icon: QrCode,
     actionLabel: "Insert QR",
   },
 };
@@ -132,6 +128,7 @@ export function DocumentWorkflowPicker({
         >).map(([workflowType, option]) => {
           const isActive = workflowType === activeWorkflowType;
           const isPending = pendingWorkflow === workflowType;
+          const OptionIcon = option.icon;
 
           return (
             <section
@@ -144,7 +141,7 @@ export function DocumentWorkflowPicker({
             >
               <div className="flex items-start gap-3">
                 <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/75 bg-white/72 text-[color:oklch(0.33_0.075_31.5)] shadow-[0_12px_28px_-24px_rgba(93,47,28,0.65)]">
-                  <HugeiconsIcon icon={option.icon} size={20} strokeWidth={1.8} />
+                  <OptionIcon size={20} strokeWidth={1.8} />
                 </span>
                 <div>
                   <p className="text-base font-medium text-zinc-950">
