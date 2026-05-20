@@ -1,6 +1,6 @@
 // Owns owner-authorized streaming of processed PDFs for dashboard preview.
 // Keeps private Supabase objects behind app auth and avoids exposing storage URLs.
-// Must only serve successfully processed files while supporting owner download.
+// May serve the previous owner-only processed file while a document is reopened for editing.
 import type { NextRequest } from "next/server";
 import { z } from "zod";
 

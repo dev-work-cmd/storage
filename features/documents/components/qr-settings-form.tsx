@@ -83,7 +83,7 @@ export function QrSettingsForm({
       requiresPin,
       pin: requiresPin ? pin : undefined,
       isEnabled,
-      legalConfirmed: true as const,
+      legalConfirmed,
     };
 
     startTransition(async () => {
@@ -106,10 +106,10 @@ export function QrSettingsForm({
     <form onSubmit={handleSubmit} className="space-y-6">
       <fieldset>
         <legend className="text-sm font-medium text-zinc-950">
-          QR behavior
+          Scan result
         </legend>
         <p className="mt-1 text-sm text-[color:oklch(0.49_0.024_39)]">
-          Choose what happens when someone scans the QR code on this document.
+          Choose what people can do after scanning the QR code.
         </p>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           {(

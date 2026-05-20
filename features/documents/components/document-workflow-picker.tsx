@@ -24,16 +24,16 @@ const WORKFLOW_OPTIONS: Record<
   REPLACE_EXISTING_QR: {
     title: "Replace existing QR",
     description:
-      "Use QR detection or manual adjustment to replace the QR that is already printed on this document.",
+      "Choose this if the PDF already has a QR code and you want to swap it for a new one.",
     icon: ScanQrCode,
     actionLabel: "Replace QR",
   },
   INSERT_NEW_QR: {
-    title: "Insert new QR",
+    title: "Add new QR",
     description:
-      "Choose a fresh rectangle on the original PDF and place a new app-hosted QR into that area.",
+      "Choose this if the PDF does not have a QR code yet, or you want to add another one.",
     icon: QrCode,
-    actionLabel: "Insert QR",
+    actionLabel: "Add QR",
   },
 };
 
@@ -95,8 +95,8 @@ export function DocumentWorkflowPicker({
             publicId,
             message:
               workflowType === "INSERT_NEW_QR"
-                ? "Insert mode is ready. Place the QR directly on the PDF preview."
-                : "Replace mode is ready. Start with detection or switch to manual positioning if needed.",
+                ? "Add QR is ready. Place the QR directly on the PDF preview."
+                : "Replace mode is ready. Scan the page or place the box by hand.",
           }),
         );
         router.refresh();
@@ -166,12 +166,12 @@ export function DocumentWorkflowPicker({
                   {isPending
                     ? "Preparing..."
                     : isActive
-                      ? `${option.actionLabel} Mode`
+                      ? `${option.actionLabel} selected`
                       : option.actionLabel}
                 </button>
                 {isActive ? (
                   <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
-                    Current mode
+                    Selected
                   </span>
                 ) : null}
               </div>

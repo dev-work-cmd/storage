@@ -1,5 +1,6 @@
 // Owns authorization for private processed PDF preview downloads.
 // Verifies document ownership before processed storage access and returns only stream-safe metadata.
+// Owners may download the previous processed output even after reopening a document as a draft.
 // Must not be used for public processed-file delivery; the public verification route owns that flow.
 import "server-only";
 
@@ -33,7 +34,6 @@ export async function getOwnedProcessedPdf(
       processedFilePath: {
         not: null,
       },
-      status: "PROCESSED",
     },
     select: {
       processedFilePath: true,

@@ -197,7 +197,7 @@ export async function evaluatePublicDocumentAccess(input: {
     }
   }
 
-  const increments: Prisma.DocumentUpdateInput = {
+  const increments: Prisma.DocumentUpdateManyMutationInput = {
     scanCount: { increment: 1 },
     accessSuccessCount: { increment: 1 },
     lastAccessedAt: new Date(),
@@ -216,23 +216,55 @@ export async function evaluatePublicDocumentAccess(input: {
   }
 
   if (input.recordAccess ?? true) {
-    await prisma.document.update({
-      where: { id: document.id },
-      data: {
-        ...increments,
-        auditLogs: {
-          create: {
-            event: eventForMode(input.mode),
-            outcome: AuditOutcome.SUCCESS,
-            ipAddress: input.metadata?.ipAddress,
-            userAgent: input.metadata?.userAgent,
-            metadata: {
-              mode: input.mode,
+    if (input.mode !== "verify" && document.maxAccessCount !== null) {
+      const updated = await prisma.document.updateMany({
+        where: {
+          id: document.id,
+          accessCount: {
+            lt: document.maxAccessCount,
+          },
+        },
+        data: increments,
+      });
+
+      if (updated.count !== 1) {
+        return deny(
+          "access_limit",
+          "This document access limit has been reached.",
+        );
+      }
+
+      await prisma.auditLog.create({
+        data: {
+          documentId: document.id,
+          event: eventForMode(input.mode),
+          outcome: AuditOutcome.SUCCESS,
+          ipAddress: input.metadata?.ipAddress,
+          userAgent: input.metadata?.userAgent,
+          metadata: {
+            mode: input.mode,
+          },
+        },
+      });
+    } else {
+      await prisma.document.update({
+        where: { id: document.id },
+        data: {
+          ...increments,
+          auditLogs: {
+            create: {
+              event: eventForMode(input.mode),
+              outcome: AuditOutcome.SUCCESS,
+              ipAddress: input.metadata?.ipAddress,
+              userAgent: input.metadata?.userAgent,
+              metadata: {
+                mode: input.mode,
+              },
             },
           },
         },
-      },
-    });
+      });
+    }
   }
 
   return {

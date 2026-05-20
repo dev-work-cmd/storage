@@ -22,7 +22,11 @@ export const qrSettingsSchema = z
       .max(64, "PIN must be at most 64 characters.")
       .optional(),
     isEnabled: z.boolean(),
-    legalConfirmed: z.literal(true),
+    legalConfirmed: z.boolean(),
+  })
+  .refine((data) => data.legalConfirmed, {
+    message: "Legal authority must be confirmed before processing.",
+    path: ["legalConfirmed"],
   })
   .refine(
     (data) => {

@@ -5,10 +5,15 @@
 import "server-only";
 
 import { AuditEvent, AuditOutcome } from "@prisma/client";
+import { PDFDocument } from "pdf-lib";
 
 import { requireCurrentSession } from "@/server/auth/session";
 import { prisma } from "@/server/db/prisma";
-import { validateQrBoundsSanity } from "@/server/services/qr/validate-qr-bounds";
+import {
+  validateQrBoundsAgainstPage,
+  validateQrBoundsSanity,
+} from "@/server/services/qr/validate-qr-bounds";
+import { downloadOriginalPdf } from "@/server/services/storage/supabase-storage";
 
 import type { QrBoundsInput } from "../schemas/qr-bounds-schema";
 
@@ -37,16 +42,52 @@ export async function updateDetectedQrBounds(
         publicId: input.publicId,
         ownerId: session.user.id,
         deletedAt: null,
+        status: "DRAFT",
       },
       select: {
         id: true,
+        originalFilePath: true,
       },
     });
 
-    if (!document) {
+    if (!document?.originalFilePath) {
       return {
         code: "NOT_FOUND",
-        message: "Document not found or you do not own it.",
+        message:
+          "Document not found, not editable, or the original PDF is missing.",
+      };
+    }
+
+    const originalPdf = await downloadOriginalPdf(document.originalFilePath);
+    const pdfDoc = await PDFDocument.load(
+      Buffer.from(await originalPdf.arrayBuffer()),
+      { ignoreEncryption: true },
+    );
+
+    if (input.pageNumber > pdfDoc.getPageCount()) {
+      return {
+        code: "INVALID_BOUNDS",
+        message: `Page ${input.pageNumber} does not exist in this PDF.`,
+      };
+    }
+
+    const page = pdfDoc.getPage(input.pageNumber - 1);
+    const pageDimensions = page.getSize();
+    const pageErrors = validateQrBoundsAgainstPage(
+      {
+        pageNumber: input.pageNumber,
+        x: input.x,
+        y: input.y,
+        width: input.width,
+        height: input.height,
+      },
+      pageDimensions,
+    );
+
+    if (pageErrors.length > 0) {
+      return {
+        code: "INVALID_BOUNDS",
+        message: pageErrors.map((error) => error.reason).join(" "),
       };
     }
 

@@ -196,13 +196,10 @@ export function PdfPreviewViewer({
         canvas.style.height = `${Math.floor(viewport.height)}px`;
         viewportRef.current = viewport;
 
-        // Capture page dimensions for coordinate conversion
-        if (pageDimensions === null) {
-          setPageDimensions({
-            width: viewport.width / zoom,
-            height: viewport.height / zoom,
-          });
-        }
+        setPageDimensions({
+          width: viewport.width / zoom,
+          height: viewport.height / zoom,
+        });
 
         setDetectedBounds(undefined);
         setDetectionState({ status: "idle" });
@@ -235,7 +232,6 @@ export function PdfPreviewViewer({
     zoom,
     allowQrEditing,
     mode,
-    pageDimensions,
     editingExperience,
     existingQrBounds,
     isLoadingBounds,
@@ -386,8 +382,8 @@ export function PdfPreviewViewer({
       {/* Mode guidance */}
       {!allowQrEditing ? (
         <div className="rounded-[1.4rem] border border-emerald-200 bg-[linear-gradient(180deg,rgba(237,251,243,0.98),rgba(226,246,235,0.95))] p-4 text-sm text-emerald-950 shadow-[0_18px_40px_-34px_rgba(36,92,55,0.4)]">
-          Showing the processed PDF. QR detection and manual editing are disabled
-          in this view.
+          This PDF is not in edit mode. Choose an action above if you want to
+          change the QR code.
         </div>
       ) : isLoadingBounds ? (
         <div className="rounded-[1.4rem] border border-[color:oklch(0.89_0.015_74)] bg-white/82 p-4 text-sm text-[color:oklch(0.49_0.024_39)]">
@@ -395,14 +391,14 @@ export function PdfPreviewViewer({
         </div>
       ) : editingExperience === "insert" ? (
         <div className="rounded-[1.4rem] border border-[color:oklch(0.89_0.015_74)] bg-white/82 p-4 text-sm text-[color:oklch(0.47_0.023_38)] shadow-[0_16px_36px_-32px_rgba(85,58,34,0.3)]">
-          Select the exact rectangle where the new QR code should be inserted.
-          Detection is intentionally disabled in this workflow.
+          Drag the box to the place where the new QR code should appear, then
+          save the position.
         </div>
       ) : editingExperience === "replace" && mode === "select" ? (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1.4rem] border border-amber-200 bg-[linear-gradient(180deg,rgba(255,248,231,0.98),rgba(252,241,212,0.92))] p-4 text-sm text-amber-950 shadow-[0_16px_36px_-32px_rgba(112,66,20,0.28)]">
           <p className="max-w-3xl">
             Manual positioning is active. Drag and resize the rectangle directly
-            on top of the PDF, then save the QR bounds.
+            on top of the PDF, then save the position.
           </p>
           <button
             className="rounded-xl border border-amber-300 bg-white/75 px-3 py-2 text-sm font-medium text-amber-950 transition hover:bg-white"
@@ -415,8 +411,8 @@ export function PdfPreviewViewer({
       ) : editingExperience === "replace" ? (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1.4rem] border border-[color:oklch(0.89_0.015_74)] bg-white/82 p-4 text-sm text-[color:oklch(0.47_0.023_38)] shadow-[0_16px_36px_-32px_rgba(85,58,34,0.3)]">
           <p className="max-w-3xl">
-            Replacement mode starts with QR detection. If detection misses or
-            needs refinement, switch to manual positioning.
+            Start by scanning this page for an existing QR code. If it misses,
+            use manual positioning.
           </p>
           <button
             className="rounded-xl border border-[color:oklch(0.89_0.015_74)] bg-[color:oklch(0.96_0.008_80)] px-3 py-2 text-sm font-medium text-[color:oklch(0.26_0.026_40.5)] transition hover:bg-[color:oklch(0.94_0.012_76)]"
@@ -458,6 +454,7 @@ export function PdfPreviewViewer({
               pageNumber={selectedPage}
               pageWidth={pageDimensions.width}
               pageHeight={pageDimensions.height}
+              zoom={zoom}
               initialPdfBounds={
                 existingQrBounds && existingQrBounds.pageNumber === selectedPage
                   ? existingQrBounds
@@ -469,14 +466,14 @@ export function PdfPreviewViewer({
                   status: "success",
                   message:
                     editingExperience === "insert"
-                      ? "QR insertion area saved successfully. Continue to access settings when ready."
-                      : "Manual QR bounds saved successfully. Continue to access settings or run detection again if needed.",
+                      ? "QR position saved. Continue to step 3 when ready."
+                      : "QR position saved. Continue to step 3 or scan again if needed.",
                 });
               }}
               saveLabel={
                 editingExperience === "insert"
                   ? "Save insertion position"
-                  : "Save manual QR bounds"
+                  : "Save QR position"
               }
             >
               <canvas

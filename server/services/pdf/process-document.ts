@@ -63,6 +63,7 @@ export async function processDocument(
       publicId: true,
       ownerId: true,
       originalFilePath: true,
+      processedFilePath: true,
       qrTargetUrl: true,
       qrPageNumber: true,
       qrX: true,
@@ -228,6 +229,17 @@ export async function processDocument(
       status: "error",
       message: "Failed to finalize the document record after processing.",
     };
+  }
+
+  if (
+    document.processedFilePath &&
+    document.processedFilePath !== processedPath
+  ) {
+    try {
+      await removeProcessedPdf(document.processedFilePath);
+    } catch {
+      // Best-effort cleanup; the new processed file is already committed.
+    }
   }
 
   return {

@@ -2,6 +2,7 @@
 // Loads the original PDF plus owner controls, then lets the user choose how to edit the QR.
 // Must keep the original PDF as the editing source so owners can return and reprocess later.
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 
@@ -31,7 +32,7 @@ function formatWorkflowType(
   }
 
   return workflowType === "INSERT_NEW_QR"
-    ? "Insert new QR"
+    ? "Add new QR"
     : "Replace existing QR";
 }
 
@@ -45,6 +46,54 @@ function formatDate(date: Date | null) {
     day: "numeric",
     year: "numeric",
   });
+}
+
+function StepLabel({ children }: { children: string }) {
+  return (
+    <p className="text-[0.68rem] uppercase tracking-[0.28em] text-[color:oklch(0.5_0.024_38)]">
+      {children}
+    </p>
+  );
+}
+
+function HelpText({ children }: { children: ReactNode }) {
+  return (
+    <p className="mt-2 max-w-3xl text-sm leading-6 text-[color:oklch(0.49_0.024_39)]">
+      {children}
+    </p>
+  );
+}
+
+function DetailPanel({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: ReactNode;
+}) {
+  return (
+    <details className="group rounded-[1.6rem] border border-[color:oklch(0.89_0.015_74)] bg-white/70 shadow-[0_18px_44px_-36px_rgba(85,58,34,0.28)]">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 [&::-webkit-details-marker]:hidden">
+        <span>
+          <span className="block text-sm font-medium text-zinc-950">
+            {title}
+          </span>
+          <span className="mt-1 block text-sm text-[color:oklch(0.49_0.024_39)]">
+            {description}
+          </span>
+        </span>
+        <span className="shrink-0 rounded-full border border-[color:oklch(0.88_0.014_74)] bg-white px-3 py-1 text-xs font-medium text-[color:oklch(0.45_0.024_39)] transition group-open:bg-[color:oklch(0.96_0.008_80)]">
+          <span className="group-open:hidden">Show</span>
+          <span className="hidden group-open:inline">Hide</span>
+        </span>
+      </summary>
+      <div className="border-t border-[color:oklch(0.9_0.012_74)] px-5 py-5">
+        {children}
+      </div>
+    </details>
+  );
 }
 
 const routeParamsSchema = z.object({
@@ -91,36 +140,42 @@ export default async function DocumentPreviewPage({
     <div className="space-y-6">
       <div>
         <p className="text-xs uppercase tracking-[0.28em] text-[color:oklch(0.5_0.024_38)]">
-          Document workspace
+          Edit PDF QR
         </p>
         <h1 className="mt-2 text-4xl text-[color:oklch(0.245_0.026_41)]">
           {document.title}
         </h1>
         <p className="mt-3 max-w-3xl text-sm leading-7 text-[color:oklch(0.49_0.024_39)]">
-          Upload once, then return here anytime to replace an existing QR or
-          insert a new one using the original PDF as the editing source.
+          Choose what kind of QR update you need, place the QR on the PDF,
+          choose what people see when they scan it, then create the final PDF.
         </p>
       </div>
 
       {showProcessedNotice && document.processedFileUrl ? (
         <div className="rounded-[1.8rem] border border-emerald-200 bg-[linear-gradient(180deg,rgba(237,251,243,0.98),rgba(226,246,235,0.95))] p-6 text-emerald-950 shadow-[0_22px_48px_-36px_rgba(36,92,55,0.35)]">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-700">
-            Process Complete
+            Final PDF ready
           </p>
           <h2 className="mt-2 text-lg font-semibold">
-            The document was reprocessed and the current PDF is ready.
+            Your updated PDF has been created.
           </h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-emerald-900/80">
-            Editing continues from the original upload below. Download the
-            current processed PDF, verify the QR target, or switch modes and
-            reprocess again later.
+            You can download it now, open it for review, or test the QR link.
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
             <a
               className={buttonVariants({ variant: "primary", size: "sm" })}
               href={`${document.processedFileUrl}?download=1`}
             >
-              Download processed PDF
+              Download final PDF
+            </a>
+            <a
+              className={buttonVariants({ variant: "secondary", size: "sm" })}
+              href={document.processedFileUrl}
+              rel="noreferrer"
+              target="_blank"
+            >
+              Open final PDF
             </a>
             {management.qrTargetUrl ? (
               <a
@@ -129,35 +184,42 @@ export default async function DocumentPreviewPage({
                 rel="noreferrer"
                 target="_blank"
               >
-                Open QR target
+                Test QR link
               </a>
             ) : null}
-            <a
-              className={buttonVariants({ variant: "secondary", size: "sm" })}
-              href={document.processedFileUrl}
-              rel="noreferrer"
-              target="_blank"
-            >
-              Open processed PDF
-            </a>
           </div>
         </div>
       ) : null}
 
+      <div className="grid gap-3 text-sm md:grid-cols-4">
+        {[
+          ["1", "Choose action"],
+          ["2", "Place QR"],
+          ["3", "Set scan result"],
+          ["4", "Create PDF"],
+        ].map(([number, label]) => (
+          <div
+            className="rounded-2xl border border-[color:oklch(0.89_0.015_74)] bg-white/76 p-3"
+            key={number}
+          >
+            <p className="text-xs font-semibold text-[color:oklch(0.5_0.024_38)]">
+              Step {number}
+            </p>
+            <p className="mt-1 font-medium text-zinc-950">{label}</p>
+          </div>
+        ))}
+      </div>
+
       <Card>
         <CardHeader>
-          <div className="space-y-2">
-            <p className="text-[0.68rem] uppercase tracking-[0.28em] text-[color:oklch(0.5_0.024_38)]">
-              Step 1
-            </p>
-            <h2 className="text-2xl text-[color:oklch(0.245_0.026_41)]">
-              Choose how to edit this document
-            </h2>
-            <p className="text-sm text-[color:oklch(0.49_0.024_39)]">
-              Pick replacement when the PDF already has a QR code. Pick
-              insertion when you need to place a new QR manually in open space.
-            </p>
-          </div>
+          <StepLabel>Step 1</StepLabel>
+          <h2 className="mt-2 text-2xl text-[color:oklch(0.245_0.026_41)]">
+            What do you want to do?
+          </h2>
+          <HelpText>
+            Choose replace if your PDF already has a QR code. Choose add if you
+            want to place a new QR code somewhere on the PDF.
+          </HelpText>
         </CardHeader>
         <CardContent>
           <DocumentWorkflowPicker
@@ -167,199 +229,17 @@ export default async function DocumentPreviewPage({
         </CardContent>
       </Card>
 
-      {!document.workflowType ? (
-        <Card>
-          <CardHeader>
-            <h2 className="text-2xl text-[color:oklch(0.245_0.026_41)]">
-              Stored document preview
-            </h2>
-            <p className="mt-1 text-sm text-[color:oklch(0.49_0.024_39)]">
-              This document is stored privately and has no QR edit mode selected
-              yet. Choose Replace QR or Insert QR above whenever you want to
-              start editing.
-            </p>
-          </CardHeader>
-        </Card>
-      ) : null}
-
       <Card>
         <CardHeader>
-          <div className="space-y-2">
-            <p className="text-[0.68rem] uppercase tracking-[0.28em] text-[color:oklch(0.5_0.024_38)]">
-              Versions
-            </p>
-            <h2 className="text-2xl text-[color:oklch(0.245_0.026_41)]">
-              Original source and latest processed output
-            </h2>
-            <p className="text-sm text-[color:oklch(0.49_0.024_39)]">
-              This is one document record. The original upload stays preserved,
-              and processing updates the latest output without overwriting the
-              source PDF.
-            </p>
-          </div>
-        </CardHeader>
-        <CardContent className="grid gap-4 xl:grid-cols-2">
-          <section className="rounded-[1.6rem] border border-[color:oklch(0.89_0.015_74)] bg-[linear-gradient(180deg,rgba(255,255,255,0.82),rgba(246,241,233,0.64))] p-5">
-            <p className="text-[0.68rem] uppercase tracking-[0.24em] text-[color:oklch(0.5_0.024_38)]">
-              Original PDF
-            </p>
-            <h3 className="mt-2 text-xl text-[color:oklch(0.245_0.026_41)]">
-              Preserved source document
-            </h3>
-            <p className="mt-2 text-sm leading-6 text-[color:oklch(0.49_0.024_39)]">
-              Every edit starts from this original upload. Replacing or
-              inserting a QR never destroys the stored source file.
-            </p>
-            <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-              <div>
-                <dt className="text-[color:oklch(0.5_0.024_38)]">Filename</dt>
-                <dd className="mt-1 truncate font-medium text-zinc-950 max-w-44">
-                  {document.originalFilename}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-[color:oklch(0.5_0.024_38)]">Uploaded</dt>
-                <dd className="mt-1 font-medium text-zinc-950">
-                  {formatDate(document.createdAt)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-[color:oklch(0.5_0.024_38)]">Workflow</dt>
-                <dd className="mt-1 font-medium text-zinc-950">
-                  {formatWorkflowType(document.workflowType)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-[color:oklch(0.5_0.024_38)]">
-                  Editing source
-                </dt>
-                <dd className="mt-1 font-medium text-zinc-950">Original PDF</dd>
-              </div>
-            </dl>
-            <div className="mt-5 flex flex-wrap gap-3">
-              <a
-                className={buttonVariants({ variant: "secondary", size: "sm" })}
-                href={`${document.originalFileUrl}?download=1`}
-              >
-                Download original PDF
-              </a>
-              <a
-                className={buttonVariants({ variant: "secondary", size: "sm" })}
-                href={document.originalFileUrl}
-                rel="noreferrer"
-                target="_blank"
-              >
-                Open original PDF
-              </a>
-            </div>
-          </section>
-
-          <section className="rounded-[1.6rem] border border-[color:oklch(0.89_0.015_74)] bg-[linear-gradient(180deg,rgba(255,255,255,0.82),rgba(246,241,233,0.64))] p-5">
-            <p className="text-[0.68rem] uppercase tracking-[0.24em] text-[color:oklch(0.5_0.024_38)]">
-              Latest Processed PDF
-            </p>
-            <h3 className="mt-2 text-xl text-[color:oklch(0.245_0.026_41)]">
-              Current generated output
-            </h3>
-            <p className="mt-2 text-sm leading-6 text-[color:oklch(0.49_0.024_39)]">
-              This is the most recent processed version for sharing,
-              verification, and downloads. Choosing a mode below lets you edit
-              again from the original source and publish a new latest output.
-            </p>
-            <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-              <div>
-                <dt className="text-[color:oklch(0.5_0.024_38)]">Status</dt>
-                <dd className="mt-1 font-medium text-zinc-950">
-                  {document.status}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-[color:oklch(0.5_0.024_38)]">
-                  Last processed
-                </dt>
-                <dd className="mt-1 font-medium text-zinc-950">
-                  {formatDate(management.processedAt)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-[color:oklch(0.5_0.024_38)]">QR target</dt>
-                <dd className="mt-1 font-medium text-zinc-950">
-                  {management.qrTargetUrl ? "Configured" : "Not configured yet"}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-[color:oklch(0.5_0.024_38)]">Re-editing</dt>
-                <dd className="mt-1 font-medium text-zinc-950">
-                  Always starts from original
-                </dd>
-              </div>
-            </dl>
-            <div className="mt-5 flex flex-wrap gap-3">
-              {document.processedFileUrl ? (
-                <>
-                  <a
-                    className={buttonVariants({
-                      variant: "primary",
-                      size: "sm",
-                    })}
-                    href={`${document.processedFileUrl}?download=1`}
-                  >
-                    Download latest processed PDF
-                  </a>
-                  <a
-                    className={buttonVariants({
-                      variant: "secondary",
-                      size: "sm",
-                    })}
-                    href={document.processedFileUrl}
-                    rel="noreferrer"
-                    target="_blank"
-                  >
-                    Open latest processed PDF
-                  </a>
-                </>
-              ) : (
-                <span className="rounded-xl border border-[color:oklch(0.89_0.015_74)] bg-white/72 px-3 py-2 text-sm text-[color:oklch(0.45_0.024_39)]">
-                  No processed version yet
-                </span>
-              )}
-            </div>
-          </section>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <div className="grid gap-3 text-sm sm:grid-cols-4">
-            <div>
-              <p className="text-[color:oklch(0.5_0.024_38)]">Original file</p>
-              <p className="mt-1 truncate font-medium text-zinc-950 max-w-44">
-                {document.originalFilename}
-              </p>
-            </div>
-            <div>
-              <p className="text-[color:oklch(0.5_0.024_38)]">Status</p>
-              <p className="mt-1 font-medium text-zinc-950">
-                {document.status}
-              </p>
-            </div>
-            <div>
-              <p className="text-[color:oklch(0.5_0.024_38)]">Mode</p>
-              <p className="mt-1 font-medium text-zinc-950">
-                {formatWorkflowType(document.workflowType)}
-              </p>
-            </div>
-            <div>
-              <p className="text-[color:oklch(0.5_0.024_38)]">Created</p>
-              <p className="mt-1 font-medium text-zinc-950">
-                {formatDate(document.createdAt)}
-              </p>
-            </div>
-            <div>
-              <p className="text-[color:oklch(0.5_0.024_38)]">Editing source</p>
-              <p className="mt-1 font-medium text-zinc-950">Original PDF</p>
-            </div>
-          </div>
+          <StepLabel>Step 2</StepLabel>
+          <h2 className="mt-2 text-2xl text-[color:oklch(0.245_0.026_41)]">
+            Place the QR code
+          </h2>
+          <HelpText>
+            Use the PDF preview to choose exactly where the QR code should go.
+            For replacement, you can scan the page first or adjust the box by
+            hand.
+          </HelpText>
         </CardHeader>
         <CardContent>
           <PdfPreviewViewer
@@ -388,72 +268,165 @@ export default async function DocumentPreviewPage({
       ) : (
         <Card>
           <CardHeader>
-            <p className="text-[0.68rem] uppercase tracking-[0.28em] text-[color:oklch(0.5_0.024_38)]">
-              Step 2
-            </p>
+            <StepLabel>Step 3</StepLabel>
             <h2 className="mt-2 text-2xl text-[color:oklch(0.245_0.026_41)]">
-              QR behavior & access settings
+              What should happen when someone scans the QR?
             </h2>
-            <p className="mt-1 text-sm text-[color:oklch(0.49_0.024_39)]">
-              {!document.workflowType
-                ? "Choose Replace QR or Insert QR above before setting access rules for a processed version."
-                : "Choose an edit mode above to reopen this document in draft before changing access settings for the next processed version."}
-            </p>
+            <HelpText>
+              Choose an action in step 1 before setting scan behavior, access
+              limits, or PIN protection.
+            </HelpText>
           </CardHeader>
         </Card>
       )}
 
       <Card>
         <CardHeader>
-          <p className="text-[0.68rem] uppercase tracking-[0.28em] text-[color:oklch(0.5_0.024_38)]">
-            Step 3
-          </p>
+          <StepLabel>Step 4</StepLabel>
           <h2 className="mt-2 text-2xl text-[color:oklch(0.245_0.026_41)]">
-            Processing
+            Create the final PDF
           </h2>
-          <p className="mt-1 text-sm text-[color:oklch(0.49_0.024_39)]">
-            Save bounds and access settings, then generate the next processed
+          <HelpText>
+            When the QR position and scan settings are saved, create a new final
             PDF from the original upload.
-          </p>
+          </HelpText>
         </CardHeader>
         <CardContent>
           {document.status === "DRAFT" && document.workflowType ? (
             <ProcessDocumentButton
-              actionLabel={
-                document.workflowType === "INSERT_NEW_QR"
-                  ? "Insert QR into PDF"
-                  : "Replace QR in PDF"
-              }
+              actionLabel="Create final PDF"
               confirmationMessage={
                 document.workflowType === "INSERT_NEW_QR"
-                  ? "Processing will insert a new QR code into the saved rectangle and publish the new processed PDF for this document."
-                  : "Processing will replace the selected QR area in the original PDF and publish the new processed version for this document."
+                  ? "This will add the QR code to the saved position and create a final PDF."
+                  : "This will replace the selected QR area and create a final PDF."
               }
-              confirmLabel={
-                document.workflowType === "INSERT_NEW_QR"
-                  ? "Click again to confirm insertion"
-                  : "Click again to confirm replacement"
-              }
-              processingLabel={
-                document.workflowType === "INSERT_NEW_QR"
-                  ? "Inserting QR..."
-                  : "Replacing QR..."
-              }
+              confirmLabel="Click again to create PDF"
+              processingLabel="Creating PDF..."
               publicId={document.publicId}
             />
           ) : (
             <div className="rounded-[1.4rem] border border-[color:oklch(0.89_0.015_74)] bg-[linear-gradient(180deg,rgba(255,255,255,0.76),rgba(246,241,233,0.62))] p-4 text-sm text-[color:oklch(0.45_0.024_39)]">
               {!document.workflowType
-                ? "This document is currently stored only. Choose Replace QR or Insert QR above when you want to begin editing."
+                ? "Start by choosing whether to replace an existing QR or add a new one."
                 : document.status === "PROCESSED"
-                  ? "Select Replace QR or Insert QR above to return this document to editable draft mode, then process a new version from the original PDF."
-                  : "This document is not currently editable. Choose an edit mode above to prepare it for reprocessing."}
+                  ? "Choose an action in step 1 if you want to edit this PDF again."
+                  : "This document is not ready for a final PDF yet."}
             </div>
           )}
         </CardContent>
       </Card>
 
-      <DocumentManagementSummary document={management} />
+      <DetailPanel
+        description="Download the original upload or the most recent final PDF."
+        title="Files and current status"
+      >
+        <div className="grid gap-4 xl:grid-cols-2">
+          <section className="rounded-[1.3rem] border border-[color:oklch(0.89_0.015_74)] bg-white/78 p-5">
+            <h3 className="text-base font-medium text-zinc-950">
+              Original PDF
+            </h3>
+            <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+              <div>
+                <dt className="text-[color:oklch(0.5_0.024_38)]">Filename</dt>
+                <dd className="mt-1 truncate font-medium text-zinc-950 max-w-44">
+                  {document.originalFilename}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[color:oklch(0.5_0.024_38)]">Uploaded</dt>
+                <dd className="mt-1 font-medium text-zinc-950">
+                  {formatDate(document.createdAt)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[color:oklch(0.5_0.024_38)]">Edit type</dt>
+                <dd className="mt-1 font-medium text-zinc-950">
+                  {formatWorkflowType(document.workflowType)}
+                </dd>
+              </div>
+            </dl>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <a
+                className={buttonVariants({ variant: "secondary", size: "sm" })}
+                href={`${document.originalFileUrl}?download=1`}
+              >
+                Download original
+              </a>
+              <a
+                className={buttonVariants({ variant: "secondary", size: "sm" })}
+                href={document.originalFileUrl}
+                rel="noreferrer"
+                target="_blank"
+              >
+                Open original
+              </a>
+            </div>
+          </section>
+
+          <section className="rounded-[1.3rem] border border-[color:oklch(0.89_0.015_74)] bg-white/78 p-5">
+            <h3 className="text-base font-medium text-zinc-950">Final PDF</h3>
+            <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+              <div>
+                <dt className="text-[color:oklch(0.5_0.024_38)]">Status</dt>
+                <dd className="mt-1 font-medium text-zinc-950">
+                  {document.status}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[color:oklch(0.5_0.024_38)]">
+                  Last created
+                </dt>
+                <dd className="mt-1 font-medium text-zinc-950">
+                  {formatDate(management.processedAt)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[color:oklch(0.5_0.024_38)]">QR link</dt>
+                <dd className="mt-1 font-medium text-zinc-950">
+                  {management.qrTargetUrl ? "Ready" : "Not ready yet"}
+                </dd>
+              </div>
+            </dl>
+            <div className="mt-5 flex flex-wrap gap-3">
+              {document.processedFileUrl ? (
+                <>
+                  <a
+                    className={buttonVariants({
+                      variant: "primary",
+                      size: "sm",
+                    })}
+                    href={`${document.processedFileUrl}?download=1`}
+                  >
+                    Download final PDF
+                  </a>
+                  <a
+                    className={buttonVariants({
+                      variant: "secondary",
+                      size: "sm",
+                    })}
+                    href={document.processedFileUrl}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    Open final PDF
+                  </a>
+                </>
+              ) : (
+                <span className="rounded-xl border border-[color:oklch(0.89_0.015_74)] bg-white/72 px-3 py-2 text-sm text-[color:oklch(0.45_0.024_39)]">
+                  No final PDF yet
+                </span>
+              )}
+            </div>
+          </section>
+        </div>
+      </DetailPanel>
+
+      <DetailPanel
+        description="Access controls, usage counts, and document management actions."
+        title="Advanced management"
+      >
+        <DocumentManagementSummary document={management} />
+      </DetailPanel>
     </div>
   );
 }

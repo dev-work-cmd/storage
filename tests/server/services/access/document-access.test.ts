@@ -5,6 +5,10 @@ const { prismaMock, verifyMock } = vi.hoisted(() => ({
     document: {
       findUnique: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn(),
+    },
+    auditLog: {
+      create: vi.fn(),
     },
   },
   verifyMock: vi.fn(),
@@ -24,8 +28,12 @@ describe("evaluatePublicDocumentAccess", () => {
   beforeEach(() => {
     prismaMock.document.findUnique.mockReset();
     prismaMock.document.update.mockReset();
+    prismaMock.document.updateMany.mockReset();
+    prismaMock.auditLog.create.mockReset();
     verifyMock.mockReset();
     prismaMock.document.update.mockResolvedValue({});
+    prismaMock.document.updateMany.mockResolvedValue({ count: 1 });
+    prismaMock.auditLog.create.mockResolvedValue({});
   });
 
   it("denies missing documents without recording an update", async () => {
@@ -189,9 +197,14 @@ describe("evaluatePublicDocumentAccess", () => {
         title: "Allowed PDF",
       },
     });
-    expect(prismaMock.document.update).toHaveBeenCalledWith(
+    expect(prismaMock.document.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: "doc_4" },
+        where: {
+          id: "doc_4",
+          accessCount: {
+            lt: 10,
+          },
+        },
         data: expect.objectContaining({
           accessCount: { increment: 1 },
           openCount: { increment: 1 },
@@ -200,5 +213,6 @@ describe("evaluatePublicDocumentAccess", () => {
         }),
       }),
     );
+    expect(prismaMock.auditLog.create).toHaveBeenCalledTimes(1);
   });
 });
