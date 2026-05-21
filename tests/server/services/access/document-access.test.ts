@@ -215,4 +215,38 @@ describe("evaluatePublicDocumentAccess", () => {
     );
     expect(prismaMock.auditLog.create).toHaveBeenCalledTimes(1);
   });
+
+  it("resolves a plain verification scan to direct download for download-mode documents", async () => {
+    prismaMock.document.findUnique.mockResolvedValue({
+      id: "doc_5",
+      publicId: "download-doc",
+      title: "Download PDF",
+      originalFilename: "download.pdf",
+      processedFilePath: "processed/doc.pdf",
+      status: "PROCESSED",
+      qrMode: "DOWNLOAD",
+      expiresAt: null,
+      maxAccessCount: null,
+      accessCount: 0,
+      requiresPin: false,
+      pinHash: null,
+      isEnabled: true,
+      isRevoked: false,
+      deletedAt: null,
+      processedAt: new Date("2026-05-14T00:00:00.000Z"),
+    });
+
+    const result = await evaluatePublicDocumentAccess({
+      publicId: "download-doc",
+      mode: "verify",
+      followDocumentQrMode: true,
+    });
+
+    expect(result).toMatchObject({
+      status: "allowed",
+      mode: "download",
+      fileRoute: "/api/documents/download-doc/file?mode=download",
+    });
+    expect(prismaMock.document.update).not.toHaveBeenCalled();
+  });
 });

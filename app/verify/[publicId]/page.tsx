@@ -78,6 +78,7 @@ export default async function VerifyPage({
   const result = await evaluatePublicDocumentAccess({
     publicId: parsedParams.data.publicId,
     mode: accessMode,
+    followDocumentQrMode: !mode,
     metadata: getRequestMetadata(headerList),
     recordAccess: accessMode === "verify",
   });

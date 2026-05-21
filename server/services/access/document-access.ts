@@ -83,6 +83,7 @@ function eventForMode(mode: PublicAccessMode) {
 export async function evaluatePublicDocumentAccess(input: {
   publicId: string;
   mode: PublicAccessMode;
+  followDocumentQrMode?: boolean;
   pin?: string;
   pinVerified?: boolean;
   metadata?: RequestMetadata;
@@ -121,6 +122,20 @@ export async function evaluatePublicDocumentAccess(input: {
     };
   }
 
+  const accessMode: PublicAccessMode =
+    input.followDocumentQrMode &&
+    input.mode === "verify" &&
+    document.qrMode === "DOWNLOAD"
+      ? "download"
+      : input.mode;
+  const shouldRecordAccess =
+    (input.recordAccess ?? true) &&
+    !(
+      input.followDocumentQrMode &&
+      input.mode === "verify" &&
+      accessMode !== "verify"
+    );
+
   const deny = async (
     reason: DeniedReason,
     message: string,
@@ -144,7 +159,7 @@ export async function evaluatePublicDocumentAccess(input: {
 
     return {
       status: "denied",
-      mode: input.mode,
+      mode: accessMode,
       reason,
       message,
       documentTitle: document.title,
@@ -174,11 +189,11 @@ export async function evaluatePublicDocumentAccess(input: {
     return deny("not_processed", "This document is not ready for public access.");
   }
 
-  if (document.requiresPin && input.mode !== "verify" && !input.pinVerified) {
+  if (document.requiresPin && accessMode !== "verify" && !input.pinVerified) {
     if (!input.pin) {
       return {
         status: "pin_required",
-        mode: input.mode,
+        mode: accessMode,
         document: {
           publicId: document.publicId,
           title: document.title,
@@ -203,20 +218,20 @@ export async function evaluatePublicDocumentAccess(input: {
     lastAccessedAt: new Date(),
   };
 
-  if (input.mode !== "verify") {
+  if (accessMode !== "verify") {
     increments.accessCount = { increment: 1 };
   }
 
-  if (input.mode === "open") {
+  if (accessMode === "open") {
     increments.openCount = { increment: 1 };
   }
 
-  if (input.mode === "download") {
+  if (accessMode === "download") {
     increments.downloadCount = { increment: 1 };
   }
 
-  if (input.recordAccess ?? true) {
-    if (input.mode !== "verify" && document.maxAccessCount !== null) {
+  if (shouldRecordAccess) {
+    if (accessMode !== "verify" && document.maxAccessCount !== null) {
       const updated = await prisma.document.updateMany({
         where: {
           id: document.id,
@@ -237,12 +252,12 @@ export async function evaluatePublicDocumentAccess(input: {
       await prisma.auditLog.create({
         data: {
           documentId: document.id,
-          event: eventForMode(input.mode),
+          event: eventForMode(accessMode),
           outcome: AuditOutcome.SUCCESS,
           ipAddress: input.metadata?.ipAddress,
           userAgent: input.metadata?.userAgent,
           metadata: {
-            mode: input.mode,
+            mode: accessMode,
           },
         },
       });
@@ -253,12 +268,12 @@ export async function evaluatePublicDocumentAccess(input: {
           ...increments,
           auditLogs: {
             create: {
-              event: eventForMode(input.mode),
+              event: eventForMode(accessMode),
               outcome: AuditOutcome.SUCCESS,
               ipAddress: input.metadata?.ipAddress,
               userAgent: input.metadata?.userAgent,
               metadata: {
-                mode: input.mode,
+                mode: accessMode,
               },
             },
           },
@@ -269,7 +284,7 @@ export async function evaluatePublicDocumentAccess(input: {
 
   return {
     status: "allowed",
-    mode: input.mode,
+    mode: accessMode,
     document: {
       id: document.id,
       publicId: document.publicId,
@@ -283,8 +298,8 @@ export async function evaluatePublicDocumentAccess(input: {
       processedAt: document.processedAt,
     },
     fileRoute:
-      input.mode === "verify"
+      accessMode === "verify"
         ? null
-        : buildFileRoute(document.publicId, input.mode),
+        : buildFileRoute(document.publicId, accessMode),
   };
 }
