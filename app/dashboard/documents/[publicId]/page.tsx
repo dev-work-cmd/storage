@@ -104,6 +104,13 @@ const searchParamsSchema = z.object({
   processed: z.enum(["1"]).optional(),
 });
 
+function canDownloadFinalPdf(document: {
+  status: string;
+  processedFileUrl: string | null;
+}) {
+  return document.status === "PROCESSED" && !!document.processedFileUrl;
+}
+
 export default async function DocumentPreviewPage({
   params,
   searchParams,
@@ -133,8 +140,9 @@ export default async function DocumentPreviewPage({
     getDocumentQrBounds(parsedParams.data.publicId),
   ]);
   const showProcessedNotice = parsedSearchParams.success
-    ? parsedSearchParams.data.processed === "1"
+    ? parsedSearchParams.data.processed === "1" && canDownloadFinalPdf(document)
     : false;
+  const showFinalPdfActions = canDownloadFinalPdf(document);
 
   return (
     <div className="space-y-6">
@@ -388,7 +396,7 @@ export default async function DocumentPreviewPage({
               </div>
             </dl>
             <div className="mt-5 flex flex-wrap gap-3">
-              {document.processedFileUrl ? (
+              {showFinalPdfActions && document.processedFileUrl ? (
                 <>
                   <a
                     className={buttonVariants({

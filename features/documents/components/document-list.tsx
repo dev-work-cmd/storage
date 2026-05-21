@@ -7,6 +7,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   startTransition,
+  useCallback,
   useDeferredValue,
   useEffect,
   useState,
@@ -340,14 +341,16 @@ function DocumentActionsMenu({
 
 export function DocumentList({
   documents,
+  initialQuery = "",
 }: {
   documents: OwnerDocumentListItem[];
+  initialQuery?: string;
 }) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
   const routeQuery = searchParams.get("q") ?? "";
-  const [query, setQuery] = useState(routeQuery);
+  const [query, setQuery] = useState(initialQuery);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [accessFilter, setAccessFilter] = useState<AccessFilter>("all");
   const [sortKey, setSortKey] = useState<SortKey>("createdAt");
@@ -357,21 +360,6 @@ export function DocumentList({
   const [page, setPage] = useState(1);
   const [viewMode, setViewMode] = useState<ViewMode>("table");
   const deferredQuery = useDeferredValue(query);
-
-  useEffect(() => {
-    setQuery(routeQuery);
-  }, [routeQuery]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [
-    deferredQuery,
-    statusFilter,
-    accessFilter,
-    sortKey,
-    sortDirection,
-    pageSize,
-  ]);
 
   const normalizedQuery = deferredQuery.trim().toLowerCase();
   const enrichedDocuments = documents.map((document) => ({
@@ -449,6 +437,8 @@ export function DocumentList({
   const rangeEnd = Math.min(currentPage * pageSize, sortedDocuments.length);
 
   function toggleSort(nextKey: SortKey) {
+    setPage(1);
+
     if (sortKey === nextKey) {
       setSortDirection((v) => (v === "asc" ? "desc" : "asc"));
       return;
@@ -457,7 +447,7 @@ export function DocumentList({
     setSortDirection(nextKey === "title" ? "asc" : "desc");
   }
 
-  function commitSearchQuery(nextValue: string) {
+  const commitSearchQuery = useCallback((nextValue: string) => {
     const params = new URLSearchParams(searchParams.toString());
     const trimmed = nextValue.trim();
 
@@ -474,7 +464,7 @@ export function DocumentList({
     startTransition(() => {
       router.replace(href, { scroll: false });
     });
-  }
+  }, [pathname, router, searchParams]);
 
   useEffect(() => {
     if (query.trim() === routeQuery.trim()) {
@@ -486,13 +476,14 @@ export function DocumentList({
     }, SEARCH_DEBOUNCE_MS);
 
     return () => window.clearTimeout(timer);
-  }, [pathname, query, routeQuery, searchParams]);
+  }, [query, routeQuery, commitSearchQuery]);
 
   function clearFilters() {
     setQuery("");
     commitSearchQuery("");
     setStatusFilter("all");
     setAccessFilter("all");
+    setPage(1);
   }
 
   const hasActiveFilters =
@@ -648,7 +639,10 @@ export function DocumentList({
                   />
                   <input
                     className="h-11 w-full rounded-[0.95rem] border border-[#eadfd6] bg-white pl-10 pr-4 text-sm text-[#241915] outline-none transition placeholder:text-[#9a8b84] focus:border-[#d7c3b6]"
-                    onChange={(e) => setQuery(e.target.value)}
+                    onChange={(e) => {
+                      setQuery(e.target.value);
+                      setPage(1);
+                    }}
                     placeholder="Search documents by title or filename..."
                     type="search"
                     value={query}
@@ -658,9 +652,10 @@ export function DocumentList({
                 <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto] gap-2">
                   <select
                     className="h-10 min-w-0 rounded-[0.95rem] border border-[#eadfd6] bg-white px-3 text-xs text-[#3e2a23] outline-none"
-                    onChange={(e) =>
-                      setStatusFilter(e.target.value as StatusFilter)
-                    }
+                    onChange={(e) => {
+                      setStatusFilter(e.target.value as StatusFilter);
+                      setPage(1);
+                    }}
                     value={statusFilter}
                   >
                     <option value="all">All status</option>
@@ -672,9 +667,10 @@ export function DocumentList({
 
                   <select
                     className="h-10 min-w-0 rounded-[0.95rem] border border-[#eadfd6] bg-white px-3 text-xs text-[#3e2a23] outline-none"
-                    onChange={(e) =>
-                      setAccessFilter(e.target.value as AccessFilter)
-                    }
+                    onChange={(e) => {
+                      setAccessFilter(e.target.value as AccessFilter);
+                      setPage(1);
+                    }}
                     value={accessFilter}
                   >
                     <option value="all">All access</option>
@@ -738,7 +734,10 @@ export function DocumentList({
                   />
                   <input
                     className="h-10 w-full rounded-[0.95rem] border border-[#eadfd6] bg-white pl-10 pr-4 text-sm text-[#241915] outline-none transition placeholder:text-[#9a8b84] focus:border-[#d7c3b6]"
-                    onChange={(e) => setQuery(e.target.value)}
+                    onChange={(e) => {
+                      setQuery(e.target.value);
+                      setPage(1);
+                    }}
                     placeholder="Search documents by title or filename..."
                     type="search"
                     value={query}
@@ -747,9 +746,10 @@ export function DocumentList({
 
                 <select
                   className="h-10 min-w-0 rounded-[0.95rem] border border-[#eadfd6] bg-white px-3 text-xs text-[#3e2a23] outline-none lg:text-sm"
-                  onChange={(e) =>
-                    setStatusFilter(e.target.value as StatusFilter)
-                  }
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value as StatusFilter);
+                    setPage(1);
+                  }}
                   value={statusFilter}
                 >
                   <option value="all">All status</option>
@@ -761,9 +761,10 @@ export function DocumentList({
 
                 <select
                   className="h-10 min-w-0 rounded-[0.95rem] border border-[#eadfd6] bg-white px-3 text-xs text-[#3e2a23] outline-none lg:text-sm"
-                  onChange={(e) =>
-                    setAccessFilter(e.target.value as AccessFilter)
-                  }
+                  onChange={(e) => {
+                    setAccessFilter(e.target.value as AccessFilter);
+                    setPage(1);
+                  }}
                   value={accessFilter}
                 >
                   <option value="all">All access</option>
@@ -1055,13 +1056,14 @@ export function DocumentList({
                     <span>Rows per page</span>
                     <select
                       className="bg-transparent text-[#241915] outline-none"
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setPageSize(
                           Number(
                             e.target.value,
                           ) as (typeof PAGE_SIZE_OPTIONS)[number],
-                        )
-                      }
+                        );
+                        setPage(1);
+                      }}
                       value={pageSize}
                     >
                       {PAGE_SIZE_OPTIONS.map((option) => (

@@ -12,8 +12,22 @@ export const metadata: Metadata = {
   title: "Documents",
 };
 
-export default async function DocumentsPage() {
+export default async function DocumentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string | string[] }>;
+}) {
+  const params = await searchParams;
+  const initialQuery = Array.isArray(params.q)
+    ? params.q[0] ?? ""
+    : params.q ?? "";
   const documents = await getOwnerDocuments();
 
-  return <DocumentList documents={documents} />;
+  return (
+    <DocumentList
+      key={initialQuery}
+      documents={documents}
+      initialQuery={initialQuery}
+    />
+  );
 }

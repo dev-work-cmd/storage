@@ -3,7 +3,7 @@
 // Owns the shared dashboard top navigation bar.
 // Keeps search and user session access consistent across dashboard pages and breakpoints.
 // Must remain layout-only and not replace page-specific filtering or data actions.
-import { startTransition, useEffect, useState } from "react";
+import { startTransition, useRef } from "react";
 import { Search } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
@@ -17,30 +17,17 @@ export function DashboardTopbar({ userName }: { userName: string }) {
   const searchParams = useSearchParams();
   const isDocumentsPage = pathname === "/dashboard/documents";
   const routeQuery = searchParams.get("q") ?? "";
-  const [searchValue, setSearchValue] = useState(routeQuery);
-
-  useEffect(() => {
-    if (isDocumentsPage) {
-      setSearchValue(routeQuery);
-      return;
-    }
-
-    setSearchValue("");
-  }, [isDocumentsPage, routeQuery, pathname]);
+  const searchTimerRef = useRef<number | undefined>(undefined);
 
   function commitRouteQuery(nextValue: string) {
     const params = new URLSearchParams(searchParams.toString());
     const trimmed = nextValue.trim();
     const targetPath = "/dashboard/documents";
 
-    if (!isDocumentsPage) {
-      params.delete("q");
-    }
+    params.delete("q");
 
     if (trimmed.length > 0) {
       params.set("q", nextValue);
-    } else {
-      params.delete("q");
     }
 
     const href = params.toString()
@@ -52,23 +39,16 @@ export function DashboardTopbar({ userName }: { userName: string }) {
     });
   }
 
-  useEffect(() => {
-    const normalizedSearch = searchValue.trim();
+  function scheduleRouteQuery(nextValue: string) {
+    window.clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = window.setTimeout(() => {
+      if (nextValue.trim() === routeQuery.trim() && isDocumentsPage) {
+        return;
+      }
 
-    if (isDocumentsPage && normalizedSearch === routeQuery.trim()) {
-      return;
-    }
-
-    if (!isDocumentsPage && normalizedSearch.length === 0) {
-      return;
-    }
-
-    const timer = window.setTimeout(() => {
-      commitRouteQuery(searchValue);
+      commitRouteQuery(nextValue);
     }, SEARCH_DEBOUNCE_MS);
-
-    return () => window.clearTimeout(timer);
-  }, [isDocumentsPage, routeQuery, searchValue, searchParams]);
+  }
 
   return (
     <header className="relative z-30 overflow-visible border-b border-[color:oklch(0.92_0.012_74)] bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(252,248,244,0.92))] px-4 py-3 backdrop-blur lg:px-7">
@@ -93,18 +73,12 @@ export function DashboardTopbar({ userName }: { userName: string }) {
               aria-label="Search workspace"
               className="h-10 w-full rounded-full border border-[color:oklch(0.89_0.015_74)] bg-white/95 pl-10 pr-4 text-sm text-[color:oklch(0.24_0.026_41)] outline-none transition placeholder:text-[color:oklch(0.62_0.018_41)] focus:border-[color:oklch(0.78_0.03_49)]"
               onChange={(event) => {
-                setSearchValue(event.target.value);
-              }}
-              onFocus={() => {
-                if (!isDocumentsPage && searchValue.trim().length === 0) {
-                  startTransition(() => {
-                    router.replace("/dashboard/documents", { scroll: false });
-                  });
-                }
+                scheduleRouteQuery(event.target.value);
               }}
               placeholder="Search documents by title..."
               type="search"
-              value={searchValue}
+              key={`${isDocumentsPage ? "documents" : "global"}:${routeQuery}`}
+              defaultValue={isDocumentsPage ? routeQuery : ""}
             />
           </label>
           <DashboardUserMenu userName={userName} />

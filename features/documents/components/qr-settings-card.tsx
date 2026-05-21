@@ -36,6 +36,7 @@ export function QrSettingsCard({
     <div className="space-y-4">
       {!isExpanded ? (
         <button
+          type="button"
           onClick={() => setIsExpanded(true)}
           className="w-full rounded-[1.8rem] border border-dashed border-[color:oklch(0.85_0.018_70)] bg-[linear-gradient(180deg,rgba(255,255,255,0.62),rgba(245,239,230,0.56))] p-7 text-center transition hover:border-[color:oklch(0.76_0.025_60)] hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.78),rgba(244,237,227,0.68))]"
         >

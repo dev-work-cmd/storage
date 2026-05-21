@@ -4,7 +4,7 @@
 // Switches a document into replacement or insertion mode from the shared detail page.
 // Must keep the choice explicit so users can return later and re-edit the original PDF.
 import { startTransition, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { QrCode, ScanQrCode, type LucideIcon } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
@@ -47,6 +47,7 @@ export function DocumentWorkflowPicker({
   activeWorkflowType: WorkflowType | null;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [pendingWorkflow, setPendingWorkflow] = useState<WorkflowType | null>(
     null,
   );
@@ -67,13 +68,18 @@ export function DocumentWorkflowPicker({
       };
 
       if (parsed.publicId === publicId && parsed.message) {
-        setToastMessage(parsed.message);
         window.sessionStorage.removeItem(WORKFLOW_TOAST_KEY);
-        const timeoutId = window.setTimeout(() => {
+        const showTimeoutId = window.setTimeout(() => {
+          setToastMessage(parsed.message ?? null);
+        }, 0);
+        const hideTimeoutId = window.setTimeout(() => {
           setToastMessage(null);
         }, 3200);
 
-        return () => window.clearTimeout(timeoutId);
+        return () => {
+          window.clearTimeout(showTimeoutId);
+          window.clearTimeout(hideTimeoutId);
+        };
       }
     } catch {
       window.sessionStorage.removeItem(WORKFLOW_TOAST_KEY);
@@ -99,6 +105,7 @@ export function DocumentWorkflowPicker({
                 : "Replace mode is ready. Scan the page or place the box by hand.",
           }),
         );
+        router.replace(pathname, { scroll: false });
         router.refresh();
         return;
       }

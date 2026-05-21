@@ -3,10 +3,6 @@
 // Must use Zod primitives for server-side enforcement boundary.
 import { z } from "zod";
 
-const futureDate = z.date().refine((date) => date > new Date(), {
-  message: "Expiration must be in the future.",
-});
-
 const positiveInt = z.number().int().positive().finite().max(1_000_000);
 
 export const qrSettingsSchema = z

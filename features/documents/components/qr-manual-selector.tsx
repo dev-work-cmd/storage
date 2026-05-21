@@ -5,13 +5,7 @@
 // Handles coordinate system conversion between viewport and PDF space.
 // Persists final bounds through server action.
 import type { ReactNode } from "react";
-import {
-  startTransition,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { startTransition, useCallback, useMemo, useState } from "react";
 import { Rnd } from "react-rnd";
 
 import { saveDetectedQrBounds } from "@/features/documents/actions/qr-detection-actions";
@@ -40,6 +34,18 @@ interface SelectorState {
   status: "idle" | "saving" | "success" | "error";
   message?: string;
 }
+
+type BoundsState = {
+  key: string;
+  position: {
+    x: number;
+    y: number;
+  };
+  size: {
+    width: number;
+    height: number;
+  };
+};
 
 export function QrManualSelector({
   publicId,
@@ -82,55 +88,100 @@ export function QrManualSelector({
     };
   }, [canvasWidth, canvasHeight, initialPdfBounds, pageInfo, zoom]);
 
-  const [position, setPosition] = useState({
-    x: initialViewportBounds.x,
-    y: initialViewportBounds.y,
-  });
+  const boundsKey = [
+    pageNumber,
+    canvasWidth,
+    canvasHeight,
+    zoom,
+    initialPdfBounds?.pageNumber ?? "new",
+    initialPdfBounds?.x ?? "x",
+    initialPdfBounds?.y ?? "y",
+    initialPdfBounds?.width ?? "w",
+    initialPdfBounds?.height ?? "h",
+  ].join(":");
 
-  const [size, setSize] = useState({
-    width: initialViewportBounds.width,
-    height: initialViewportBounds.height,
-  });
+  const initialBoundsState = useMemo<BoundsState>(
+    () => ({
+      key: boundsKey,
+      position: {
+        x: initialViewportBounds.x,
+        y: initialViewportBounds.y,
+      },
+      size: {
+        width: initialViewportBounds.width,
+        height: initialViewportBounds.height,
+      },
+    }),
+    [boundsKey, initialViewportBounds],
+  );
+
+  const [boundsState, setBoundsState] =
+    useState<BoundsState>(initialBoundsState);
+  const activeBoundsState =
+    boundsState.key === boundsKey ? boundsState : initialBoundsState;
 
   const [selectorState, setSelectorState] = useState<SelectorState>({
     status: "idle",
   });
-
-  useEffect(() => {
-    setPosition({
-      x: initialViewportBounds.x,
-      y: initialViewportBounds.y,
-    });
-    setSize({
-      width: initialViewportBounds.width,
-      height: initialViewportBounds.height,
-    });
-    setSelectorState({ status: "idle" });
-  }, [initialViewportBounds, pageNumber]);
+  const activeSelectorState =
+    boundsState.key === boundsKey ? selectorState : { status: "idle" as const };
 
   // Clamp values to prevent box from going outside canvas
   const clampedPosition = useMemo(
     () => ({
-      x: Math.max(0, Math.min(position.x, canvasWidth - size.width)),
-      y: Math.max(0, Math.min(position.y, canvasHeight - size.height)),
+      x: Math.max(
+        0,
+        Math.min(
+          activeBoundsState.position.x,
+          canvasWidth - activeBoundsState.size.width,
+        ),
+      ),
+      y: Math.max(
+        0,
+        Math.min(
+          activeBoundsState.position.y,
+          canvasHeight - activeBoundsState.size.height,
+        ),
+      ),
     }),
-    [canvasWidth, canvasHeight, position.x, position.y, size.width, size.height],
+    [
+      canvasWidth,
+      canvasHeight,
+      activeBoundsState.position.x,
+      activeBoundsState.position.y,
+      activeBoundsState.size.width,
+      activeBoundsState.size.height,
+    ],
   );
 
   const clampedSize = useMemo(
     () => ({
-      width: Math.min(size.width, canvasWidth - clampedPosition.x),
-      height: Math.min(size.height, canvasHeight - clampedPosition.y),
+      width: Math.min(
+        activeBoundsState.size.width,
+        canvasWidth - clampedPosition.x,
+      ),
+      height: Math.min(
+        activeBoundsState.size.height,
+        canvasHeight - clampedPosition.y,
+      ),
     }),
     [
       canvasWidth,
       canvasHeight,
       clampedPosition.x,
       clampedPosition.y,
-      size.width,
-      size.height,
+      activeBoundsState.size.width,
+      activeBoundsState.size.height,
     ],
   );
+
+  function updateBounds(nextBounds: Omit<BoundsState, "key">) {
+    setBoundsState({
+      key: boundsKey,
+      ...nextBounds,
+    });
+    setSelectorState({ status: "idle" });
+  }
 
   const handleSave = useCallback(async () => {
     setSelectorState({ status: "saving", message: "Saving QR position..." });
@@ -203,23 +254,33 @@ export function QrManualSelector({
             height: clampedSize.height,
           }}
           onDragStop={(e, d) => {
-            setPosition({ x: d.x, y: d.y });
+            updateBounds({
+              position: { x: d.x, y: d.y },
+              size: activeBoundsState.size,
+            });
           }}
           onDrag={(e, d) => {
-            setPosition({ x: d.x, y: d.y });
+            updateBounds({
+              position: { x: d.x, y: d.y },
+              size: activeBoundsState.size,
+            });
           }}
           onResize={(e, direction, ref, delta, position) => {
-            setPosition(position);
-            setSize({
-              width: ref.offsetWidth,
-              height: ref.offsetHeight,
+            updateBounds({
+              position,
+              size: {
+                width: ref.offsetWidth,
+                height: ref.offsetHeight,
+              },
             });
           }}
           onResizeStop={(e, direction, ref, delta, position) => {
-            setPosition(position);
-            setSize({
-              width: ref.offsetWidth,
-              height: ref.offsetHeight,
+            updateBounds({
+              position,
+              size: {
+                width: ref.offsetWidth,
+                height: ref.offsetHeight,
+              },
             });
           }}
           minWidth={20}
@@ -315,27 +376,27 @@ export function QrManualSelector({
       </details>
 
       {/* Status messages */}
-      {selectorState.message ? (
+      {activeSelectorState.message ? (
         <div
           className={
-            selectorState.status === "success"
+            activeSelectorState.status === "success"
               ? "rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800"
-              : selectorState.status === "error"
+              : activeSelectorState.status === "error"
                 ? "rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"
                 : "rounded-lg border border-zinc-200 bg-white p-3 text-sm text-zinc-700"
           }
         >
-          {selectorState.message}
+          {activeSelectorState.message}
         </div>
       ) : null}
 
       {/* Save button */}
       <button
         onClick={handleSave}
-        disabled={selectorState.status === "saving"}
+        disabled={activeSelectorState.status === "saving"}
         className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:bg-zinc-300"
       >
-        {selectorState.status === "saving" ? "Saving..." : saveLabel}
+        {activeSelectorState.status === "saving" ? "Saving..." : saveLabel}
       </button>
     </div>
   );

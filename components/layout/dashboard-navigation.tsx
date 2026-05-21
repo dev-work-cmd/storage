@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 
 import { AppWordmark } from "@/components/shared/app-wordmark";
-import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const navItems = [
