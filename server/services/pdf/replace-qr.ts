@@ -6,6 +6,10 @@ import "server-only";
 
 import { PDFDocument, rgb } from "pdf-lib";
 
+const REPLACEMENT_BLEED_RATIO = 0.015;
+const MIN_REPLACEMENT_BLEED = 1.5;
+const MAX_REPLACEMENT_BLEED = 4;
+
 export interface QrReplacementInput {
   /** Original PDF file as a Buffer */
   pdfBuffer: Buffer;
@@ -35,6 +39,34 @@ export class QrReplacementError extends Error {
     super(message);
     this.name = "QrReplacementError";
   }
+}
+
+export function expandQrReplacementBounds(input: {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  pageWidth: number;
+  pageHeight: number;
+}) {
+  const bleed = Math.min(
+    MAX_REPLACEMENT_BLEED,
+    Math.max(
+      MIN_REPLACEMENT_BLEED,
+      Math.min(input.width, input.height) * REPLACEMENT_BLEED_RATIO,
+    ),
+  );
+  const x = Math.max(0, input.x - bleed);
+  const y = Math.max(0, input.y - bleed);
+  const right = Math.min(input.pageWidth, input.x + input.width + bleed);
+  const top = Math.min(input.pageHeight, input.y + input.height + bleed);
+
+  return {
+    x,
+    y,
+    width: right - x,
+    height: top - y,
+  };
 }
 
 /**
@@ -125,13 +157,22 @@ export async function replaceQrInPdf(
     );
   }
 
-  // Step 1: Draw a white rectangle over the old QR area to erase it
-  // pdf-lib drawRectangle uses bottom-left origin, matching our stored coordinates
-  page.drawRectangle({
+  const replacementBounds = expandQrReplacementBounds({
     x: input.x,
     y: input.y,
     width: input.width,
     height: input.height,
+    pageWidth,
+    pageHeight,
+  });
+
+  // Step 1: Draw a white rectangle over the old QR area to erase it
+  // pdf-lib drawRectangle uses bottom-left origin, matching our stored coordinates
+  page.drawRectangle({
+    x: replacementBounds.x,
+    y: replacementBounds.y,
+    width: replacementBounds.width,
+    height: replacementBounds.height,
     color: rgb(1, 1, 1), // Pure white
   });
 
@@ -148,10 +189,10 @@ export async function replaceQrInPdf(
   // Step 3: Draw the new QR image in the same rectangle
   // The image is scaled to fit the rectangle dimensions
   page.drawImage(qrImage, {
-    x: input.x,
-    y: input.y,
-    width: input.width,
-    height: input.height,
+    x: replacementBounds.x,
+    y: replacementBounds.y,
+    width: replacementBounds.width,
+    height: replacementBounds.height,
   });
 
   // Step 4: Save the modified PDF
