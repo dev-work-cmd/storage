@@ -3,7 +3,7 @@
 // Must be the only place that constructs PrismaClient directly inside the app codebase.
 import "server-only";
 
-import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaNeon } from "@prisma/adapter-neon";
 import { PrismaClient } from "@prisma/client";
 
 const databaseUrl = process.env.DATABASE_URL;
@@ -16,7 +16,7 @@ const globalForPrisma = globalThis as typeof globalThis & {
   prisma?: PrismaClient;
 };
 
-const adapter = new PrismaPg({ connectionString: databaseUrl });
+const adapter = new PrismaNeon({ connectionString: databaseUrl });
 
 export const prisma =
   globalForPrisma.prisma ??

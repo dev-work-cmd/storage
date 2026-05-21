@@ -48,6 +48,10 @@ cp .env.example .env.local
 Required variables:
 
 - `DATABASE_URL`
+- `DIRECT_URL` for Prisma CLI commands when using Neon. In Vercel runtime,
+  `DATABASE_URL` should be the pooled Neon connection string with `-pooler` in
+  the host. `DIRECT_URL` should be the direct Neon connection string without
+  `-pooler`.
 - `NEXT_PUBLIC_APP_URL`
 - `BETTER_AUTH_SECRET`
 - `SUPABASE_URL`
